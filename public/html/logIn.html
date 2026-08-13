@@ -1,0 +1,85 @@
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Rimosso lo script defer se non strettamente necessario per altre logiche -->
+</head>
+
+<body>
+    <nav class="navbar navbar-dark bg-primary mb-3">
+    <div class="container">
+      <a class="navbar-brand" href="#"><img src="../images/ATC_scritta.jpg" alt="Logo" width="40" height="50"><img src="../images/logo.jpg" alt="Logo" width="60" height="50"></a>
+      <p class="text-white mb-0">INSERISCI LA MAIL E LA PASSOWORD <span id="nomeUtente"></span></p>
+      <button class="btn btn-outline-light" id="logoutBtn">Logout</button>
+    </div>
+  </nav>
+    <div class="container">
+        <div class="row justify-content-center">
+            <!-- Sezione Login -->
+            <div class="col-md-6">
+                <div class="card mt-5">
+                    <div class="card-header text-center">
+                        <h3>Login</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Contenitore per mostrare l'errore se presente nella URL -->
+                        <div id="errorAlert" class="alert alert-danger d-none" role="alert"></div>
+
+                        <form id="loginForm" action="/log_in" method="POST">
+                            <div class="form-group">
+                                <label for="mail">Email</label>
+                                <input type="email" id="mail" name="mail" class="form-control" placeholder="Inserisci la tua email" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" class="form-control" placeholder="Inserisci la password" required>
+                            </div>
+
+                            <!-- Pulsante nativo di submit per attivare i controlli "required" -->
+                            <button type="submit" class="btn btn-primary btn-block">Accedi</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sezione Registrazione -->
+            <div class="col-md-6">
+                <div class="card mt-5">
+                    <div class="card-header text-center">
+                        <h3>Nuovo Utente?</h3>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="mb-3">Vuoi registrarti come utente?</p>
+                        <a href="/insUser/0" class="btn btn-outline-success btn-block mb-3">REGISTRATI</a>
+                        <hr>
+                        <p><a href="/ripPw" class="text-muted">Ripristina password</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script per leggere il messaggio di errore dall'URL -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            if (error) {
+                const alertDiv = document.getElementById('errorAlert');
+                // Decodifica il messaggio di errore (es: 'Incorrect password.')
+                alertDiv.textContent = decodeURIComponent(error === '1' ? 'Credenziali errate.' : error);
+                alertDiv.classList.remove('d-none');
+            }
+        });
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>
