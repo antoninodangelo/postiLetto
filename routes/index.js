@@ -241,7 +241,7 @@ router.get('/eliminaPaziente/:IDPaziente/:IDPostoLetto/:livelloAccesso', async (
     // 2) Aggiorno il posto letto SOLO se l'update paziente ha avuto effetto
     if (infoPaziente.affectedRows > 0 && livelloAccesso< 50) {
       await pool.query(
-        `UPDATE postiLetto SET IDStatoLetto = 13 WHERE IDPostoLetto = ?`,
+        `UPDATE postiLetto SET IDStatoLetto =16 WHERE IDPostoLetto = ?`,
         [IDPostoLetto]
       );
     }else{

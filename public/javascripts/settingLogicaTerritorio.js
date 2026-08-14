@@ -931,16 +931,17 @@ function creaReparto(nome, IDSetting, livelloAccesso) {
         .then(response => response.json())
         .then(data => {
             data.forEach(letto => {                // Ottieni stato, colore e icona
-                const [statoLetto, bgcolor, icona] = assegnaStato(
-                    letto.IDStatoLetto,
-                    letto.dataInserimento,
-                    letto.dataTrafPrevista,
-                    letto.dataTrasf,
-                    letto.sesso,
-                    letto.numeroStanza,
-                    livelloAccesso
+               const { statoLetto, bgcolor, icona, labelStato } = assegnaStato(
+    letto.IDStatoLetto,
+    letto.dataInserimento,
+    letto.dataTrafPrevista,
+    letto.dataTrasf,
+    letto.sesso,
+    letto.numeroStanza,
+    livelloAccesso
+);
 
-                );
+                
                 // Crea SVG letto
                 const lettoElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
                 lettoElement.setAttribute("viewBox", "0 0 28 34");
@@ -950,15 +951,18 @@ function creaReparto(nome, IDSetting, livelloAccesso) {
 
                 // Colore dinamico
                 lettoElement.style.setProperty("--bg-letto-dinamico", bgcolor || "#e0e0e0");
-                let pzDimesso = "Libero";
+                let pzDimesso = "";
 
-
+                
                 let aPaziente = `<g onclick="assegnaPaziente(event, ${letto.IDPostoLetto}, ${letto.IDStatoLetto})">`;
                 if (letto.IDPaziente !== null) {
                     //lettoElement.style.setProperty("--bg-letto-dinamico", "#ff4fa3");
                     pzDimesso = letto.nomePaziente.substring(0, 1) + " " + letto.cognomePaziente.substring(0, 1);
+                }else{   
+                     pzDimesso = "Inserisci";
                 };
                 // Stati non consentiti: inseriamo gli ID in un array per pulizia
+                console.log(icona, 'valore dellicona', labelStato);
                 if (icona) {
                     lettoElement.innerHTML = icona;
                 } else {
@@ -970,6 +974,9 @@ function creaReparto(nome, IDSetting, livelloAccesso) {
                     <rect x="4" y="6" width="6" height="4" rx="1" fill="var(--bg-letto-dinamico)"></rect>
                     <rect x="4" y="10" width="20" height="8" rx="2" fill="var(--bg-letto-dinamico)"></rect>
                     <text x="14" y="28" font-size="6" font-weight="bold" text-anchor="middle" fill="#333">${statoLetto}</text>
+                    <text x="14" y="36" font-size="5" font-weight="bold" text-anchor="middle" fill="#333" >
+                       ${labelStato}
+                    </text>
                     ${aPaziente}
                     <rect x="1" y="29" width="27" height="8" fill="white" stroke="#333" stroke-width="0.5" rx="2" ry="2"/>
                     <text x="14" y="36" font-size="5" font-weight="bold" text-anchor="middle" fill="#333" >
@@ -1000,103 +1007,91 @@ function creaReparto(nome, IDSetting, livelloAccesso) {
     return reparto;
 }
 
-function assegnaStato(IDStatoLetto, dataIngresso = null, dataPresuntoTrasferimento = null, dataTrasferimento = null, sesso = null, numeroStanza = null, livelloAccesso) {
+function assegnaStato(
+    IDStatoLetto,
+    dataIngresso = null,
+    dataPresuntoTrasferimento = null,
+    dataTrasferimento = null,
+    sesso = null,
+    numeroStanza = null,
+    livelloAccesso
+) {
     let statoLetto = null;
-    let labelStato = null;
-    let bgcolor = '#e0e0e0'; // default
-    let icona = null;
+    let labelStato = "---";
+    let bgcolor = "#e0e0e0";
+    let icona = "";
 
+    const haDateTrasferimento = (dataPresuntoTrasferimento !== null || dataTrasferimento !== null);
 
+    // -------------------------
+    // Funzioni icona SVG
+    // -------------------------
+    const svgPersona = (colore, label) => `
+        <text x="14" y="6" font-size="6" font-weight="bold" text-anchor="middle" fill="#000">
+            ${numeroStanza || ""}
+        </text>
+
+        <g transform="translate(6, 10) scale(0.6)" fill="${colore}">
+            <path d="M14 5a2 2 0 1 1-4 0a2 2 0 0 1 4 0Z"/>
+            <path d="M10 7c-.5 2 3.5 2 3 0c-.3-1.5-2.7-1.5-3 0Z"/>
+            <path d="M9 22H7l2-7-3-2 1.5-2L11 14l2-4 3 1-2 5 2 6h-2l-1.5-4L11 18l-2 4Z"/>
+        </g>
+
+        <text x="14" y="32" font-size="7" font-weight="bold" text-anchor="middle" fill="#333">
+            ${label}
+        </text>
+    `;
+
+    const iconaDonna = (label) => svgPersona("#ff4fa3", label);
+    const iconaUomo  = (label) => svgPersona("#5653de", label);
+
+    // -------------------------
+    // SWITCH STATO
+    // -------------------------
     switch (IDStatoLetto) {
-        case 15:
-            // Stato
-            statoLetto = 'P';
+
+        case 15: // PRE-DIMISSIONE
+            statoLetto = "P";
             labelStato = (livelloAccesso >= 50) ? "Assegna" : "In Dim.";
-            // Icone SVG
-            const iconaDonna = `
-            <text x="14" y="6" font-size="6" font-weight="bold" text-anchor="middle" fill="#000">
-                ${numeroStanza || ""}
-            </text>
 
-            <g transform="translate(6, 10) scale(0.6)" fill="#ff4fa3">
-                <path d="M14 5a2 2 0 1 1-4 0a2 2 0 0 1 4 0Z"/>
-                <path d="M10 7c-.5 2 3.5 2 3 0c-.3-1.5-2.7-1.5-3 0Z"/>
-                <path d="M9 22H7l2-7-3-2 1.5-2L11 14l1-3 2-1 2 2-1 3 2 7h-2l-1.5-4L11 18l-2 4Z"/>
-            </g>
-
-            <text x="14" y="32" font-size="7" font-weight="bold" text-anchor="middle" fill="#333">
-                ${labelStato}
-            </text>
-            `;
-
-            const iconaUomo = `
-                <text x="14" y="6" font-size="6" font-weight="bold" text-anchor="middle" fill="#000">
-                    ${numeroStanza || ""}
-                </text>
-
-                <g transform="translate(6, 10) scale(0.6)" fill="#5653de">
-                    <path d="M14 5a2 2 0 1 1-4 0a2 2 0 0 1 4 0Z"/>
-                    <path d="M10 7c-.5 2 3.5 2 3 0c-.3-1.5-2.7-1.5-3 0Z"/>
-                    <path d="M9 22H7l2-7-3-2 1.5-2L11 14l2-4 3 1-2 5 2 6h-2l-1.5-4L11 18l-2 4Z"/>
-                </g>
-
-                <text x="14" y="32" font-size="7" font-weight="bold" text-anchor="middle" fill="#333">
-                   ${labelStato}
-                </text>
-                `;
-
-            // 🔥 PRIORITÀ: se ci sono date → viola
-
-
-            if (dataPresuntoTrasferimento !== null || dataTrasferimento !== null) {
-                bgcolor = 'purple';
-                icona = sesso === 1 ? iconaDonna : iconaUomo;
+            if (haDateTrasferimento) {
+                bgcolor = "purple";
+                icona = (sesso === 1) ? iconaDonna(labelStato) : iconaUomo(labelStato);
+            } else {
+                bgcolor = (sesso === 1) ? "pink" : "lightblue";
+                labelStato = "---";
+                icona = "";
             }
-            else {
-                // 🔥 Colore in base al sesso
-                if (sesso === 1) {
-                    bgcolor = 'pink';
-                    icona = "";
-                } else {
-                    bgcolor = 'lightblue';
-                    icona = "";
-                }
-            }
+            break;
 
+        case 2: // CHIUSO
+            statoLetto = "CHUSO";
+            bgcolor = "red";
             break;
-        case 2:
-            statoLetto = 'CHUSO';
-            labelStato = "---"
-            // Codice eseguito se espressione === valore2
-            bgcolor = 'red';
+
+        case 3: // CHIUSO ES
+            statoLetto = "CHIUSO ES";
+            labelStato = "CLOSE";
+            bgcolor = "#e0c4a7";
             break;
-        case 3:
-            statoLetto = 'CHIUSO ES';
-            labelStato = "---"
-            bgcolor = '#e0c4a7';
+
+        case 14: // LIBERO
+            statoLetto = "LIBERO";
+            bgcolor = "lightgreen";
             break;
-        case 14:
-            statoLetto = 'LIBERO';
-            labelStato = "---"
-            bgcolor = 'lightgreen';
-            break;
-        case 13:
-            statoLetto = 'OCC.';
-            labelStato = "---"
-            bgcolor = 'red';
-            break;
-        case 16: // IN DIMISSINE
-            statoLetto = 'DIM.';
-            bgcolor = 'yellow';
+
+        case 16: // OCCUPATO (DIMISSIONE)
+            statoLetto = "Occ.";
+            bgcolor = "yellow";
             break;
 
         default:
-            // Codice eseguito se nessun case corrisponde
             statoLetto = null;
     }
 
-    return [statoLetto, bgcolor, icona];
+    return { statoLetto, bgcolor, icona, labelStato };
 }
+
 function toggleLetto(letto, reparto) {
 
     datiForm.IDSetting = letto.dataset.IDSetting;

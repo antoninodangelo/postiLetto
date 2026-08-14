@@ -246,7 +246,7 @@ router.post('/salvaDatiPaziente', async (req, res) => {
     
     if(rowsPzPresente.length >0){
       const [rows]= await pool.query('UPDATE paziente set dataTrasf=? where IDPostoLetto = ? and IDPaziente = ?',[oggi,IDPostoLetto,rowsPzPresente[0].IDPaziente])
-      const [info]= await pool.query('UPDATE postiletto set IDStatoLetto=13 where IDPostoletto =?',[IDPostoLetto])
+      const [info]= await pool.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto])
     }
     
     // SE abbiamo rowsPzPresente devo inserire la data di trasf. nella tupla toravata e eseguire l'inserimeto
@@ -568,9 +568,7 @@ router.get('/annullaTasferimento/:IDPostoLetto/:IDPaziente/:IDUtente', async (re
   // Sostituisci 'nome_tabella' e 'nome_campo_data' con i tuoi dati reali
   // NOW() inserisce data e ora correnti (AAAA-MM-GG HH:MM:SS)
   const sql = `UPDATE paziente p SET p.dataTrasf=?, p.IDSettingDestinazione=?, p.IDUtenteTrasf=? WHERE IDPaziente = ? `;
-/*   const sql_letto =`UPDATE postiletto p SET p.IDStatoLetto= 13
-                    WHERE p.IDPostoLetto= ?`
- */
+
   try {
     const [result] = await pool.execute(sql, ["",null,IDUtente,IDPaziente]);
   
@@ -635,7 +633,7 @@ router.get('/aggiornaDataTrasf/:IDPaziente/:IDPostoLettoDestinazione/:IDUtente/:
                 IDUtente
             ]
         );
-          const sql_letto =`UPDATE postiletto p SET p.IDStatoLetto= 13
+          const sql_letto =`UPDATE postiletto p SET p.IDStatoLetto= 16
                     WHERE p.IDPostoLetto= ?`;
           await conn.query(sql_letto, [IDPostoLettoDestinazione]);
         // 4️⃣ COMMIT
