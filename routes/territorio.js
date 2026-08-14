@@ -147,6 +147,7 @@ router.get('/setting/:ID', async (req, res) => {
 
 router.get('/settingAppartenenza/:idZona', async (req, res) => {
   const idZona = req.params.idZona;
+  console.log("idZona ricevuto:", idZona);
   try {
     const [rows] = await pool.query(
       `SELECT distinct s.IDSetting, z.zona, s.setting
@@ -472,19 +473,17 @@ router.get('/getPazienti',async (req,res)=>{
 });
 
 
-router.get('/caricaAzienda', async (req, res) => {
+router.get('/caricaZona', async (req, res) => {
   let newRows = [];
   try {
        const [rows] = await pool.query(
-      `SELECT a.IDAzienda, z.zona, a.nomeAzienda FROM aziende a
-INNER JOIN aziende_zone az ON az.idAzienda= a.IDAzienda
-INNER JOIN zone z ON z.IDZona =az.idZona
-ORDER BY a.IDAzienda, nomeAzienda,zona `,[]
+      `SELECT IDZona, zona from zone
+WHERE IDAzienda =1 `,[]
     );
     if(rows.length !== 0){
         newRows = rows.map(row => ({
-          "testo": row.nomeAzienda, 
-          "valore": row.IDAzienda
+          "testo": row.zona, 
+          "valore": row.IDZona
         }));      
         res.json(newRows);
     } else {

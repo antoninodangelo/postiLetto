@@ -109,8 +109,8 @@ const configurazioneFormPz = [
         values: [1, 2]
     },
     {
-        id: 'azienda',
-        label: 'Azienda',
+        id: 'zona',
+        label: 'Zona',
         type: 'select',
         required: true,
         options: [],
@@ -138,7 +138,7 @@ const datiformPz = {
     cognomePaziente: null,
     dataNascita: null,
     sesso: null,
-    azienda: null,
+    zona: null,
     settingApp: null,
     settingDestinazione: null,
     dataTrasf: null,
@@ -225,9 +225,9 @@ async function caricaDati() {
    
     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
-    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso);
+    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso);   
+    caricaZona();
     caricaSettingAppartenenza();
-    caricaAzienda();
 }
 
 
@@ -774,15 +774,15 @@ async function caricaSettingAppartenenza(idZona=0) {
         console.error('Errore nella routine caricasetting:', error);
     }
 }
-async function caricaAzienda() {
+async function caricaZona() {
     try {
-        const response = await fetch(`/territorio/caricaAzienda`);
+        const response = await fetch(`/territorio/caricaZona`);
         const azienda = await response.json();
 
         // 🔥 Popolo settingUtente SENZA duplicati
-        configurazioneFormPz.find(el => el.id === 'azienda').options = azienda.map(s => s.testo);
-        configurazioneFormPz.find(el => el.id === 'azienda').values = azienda.map(s => s.valore);
-       console.log("Configurazione Form Paziente aggiornata con settingAppartenenza:", configurazioneFormPz.find(el => el.id === 'azienda'));
+        configurazioneFormPz.find(el => el.id === 'zona').options = azienda.map(s => s.testo);
+        configurazioneFormPz.find(el => el.id === 'zona').values = azienda.map(s => s.valore);
+       console.log("Configurazione Form Paziente aggiornata con settingAppartenenza:", configurazioneFormPz.find(el => el.id === 'zona'));
 
 
     } catch (error) {
@@ -1159,9 +1159,7 @@ function aggiornaContatori(reparto) {
     const liberi = reparto.querySelectorAll(".letto.libero").length;
     const uomini = reparto.querySelectorAll(".letto.occupato-uomo").length;
     const donne = reparto.querySelectorAll(".letto.occupato-donna").length;
-    //reparto.querySelector(".liberi").textContent = liberi;
-    // reparto.querySelector(".uomini").textContent = uomini;
-    //reparto.querySelector(".donne").textContent = donne;
+    
 }
 
 const dashboard = document.getElementById("dashboardReparti");
@@ -1226,7 +1224,7 @@ function chiudiModal(idModale) {
 }
 document.addEventListener('change',async(e)=>{
     
-    if(e.target.id ==='azienda'){        
+    if(e.target.id ==='zona'){        
         const settingAzienda = await fetch(`/territorio/settingAppartenenza/${e.target.value}`);
         const dati = await settingAzienda.json();
         configurazioneFormPz.find(el => el.id === 'settingApp').options =
@@ -1238,7 +1236,7 @@ document.addEventListener('change',async(e)=>{
     }
     if(e.target.id ==='settingApp'){
         datiformPz.IDSetting = e.target.value;
-        console.log("IDSetting selezionato=>", datiformPz.IDSetting);
+       
     }
 
 })
