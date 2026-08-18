@@ -1,8 +1,10 @@
+import { tabellaRicoverati } from "./creaTabellaRicoverati.js";
 import { creaMenuSx } from "./gestisciMenuSx.js";
 import { tabellaDimissioni } from "./tabellaDimissioni.js";
 import { gestisciChiusure } from "./gestioneChiusure/gestisciChusuraLetti.js";
 import { creaCardRepartoConLettiSVG } from "./dash/dashboard.js";
 import { gestionePiano } from "./gestioneChiusure/gestionePiano.js";
+
 let setting = [];
 let settingUtente = [];
 let settingsZona = [];
@@ -226,6 +228,7 @@ async function caricaDati() {
     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
     tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso);
+    tabellaRicoverati('dashboardReparti',livelloAccesso);
     caricaSettingAppartenenza();
     caricaAzienda();
 }
@@ -582,11 +585,13 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
                     if (document.getElementById(`selectSetting_${p.IDPaziente}`).value === "") {
                         alert('DEVI SELEZIONARE UN SETTING....');
                         return
+                    }else if(document.getElementById(`selectLettiLiberi_${p.IDPaziente}`).value === "" || document.getElementById(`selectLettiLiberi_${p.IDPaziente}`).value === "0"){
+                        alert('DEVI SELEZIONARE UN LETTO LIBERO....');
+                        return
                     }
-                   
                     const IDPostoLettoDestinazione = document.getElementById(`selectLettiLiberi_${p.IDPaziente}`).value;
-                    console.log("IDPostoLettoDestinazione=>", IDPostoLettoDestinazione);
-                    const response = await fetch(`/territorio/aggiornaDataTrasf/${p.IDPaziente}/${IDPostoLettoDestinazione}/${IDUtente}/${p.IDPostoLetto}`);
+                    const IDSettingDestinazione = document.getElementById(`selectSetting_${p.IDPaziente}`).value;
+                    const response = await fetch(`/territorio/aggiornaDataTrasf/${p.IDPaziente}/${IDPostoLettoDestinazione}/${IDUtente}/${p.IDPostoLetto}/${IDSettingDestinazione}`);
                     await caricaSetting(IDUtente, livelloAccesso);
                     caricaStatoLetti();
                     generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
@@ -704,12 +709,12 @@ function generaFormDinamico(config, storage, idFormHTML) {
 
             switch (tipoForm) {
                 case "updateLetto":
-                    endpoint = "/salvaDatiLetto";
+                    endpoint = "/territorio/salvaDatiLetto";
                     nomeModale = 'modalLetto';
                     break;
 
                 case "updatePaziente":
-                    endpoint = "/territorio/salvaDatiPaziente";
+                    endpoint = `/territorio/salvaDatiPaziente/${livelloAccesso}`;
                     nomeModale = 'insPaziente';
                     break;
             }
@@ -727,6 +732,9 @@ function generaFormDinamico(config, storage, idFormHTML) {
             generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
             generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
             generaTabellaPostiChiusi(IDUtente, 'lettiChiusi');
+            if(livelloAccesso>=50){
+                alert ("genere ala tabella dei pazienti ricoverati");
+            }
             
 
         } catch (error) {

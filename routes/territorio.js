@@ -4,7 +4,8 @@ import pool from '../config/db.js';
 import { isBefore, parseISO } from 'date-fns';
 import { format } from "date-fns";
 import { it, sq, zhCN } from "date-fns/locale";
-const oggi = format(new Date(), "yyyy-MM-dd", { locale: it });
+const oggi = format(new Date(), "yyyy-MM-dd HH:mm:ss");
+
 import { fileURLToPath } from 'url';
 
 
@@ -129,7 +130,27 @@ router.get("/pazientiPerSetting/:IDSetting", async(req, res) => {
         res.json(results);
     });
 
+router.get("/pazientiRicoverati", async(req, res) => {
+    try{
+    const sql = `
+        SELECT p.IDPaziente,z.zona,s.setting, concat(p.cognomePaziente," ", p.nomePaziente) AS nome,  
+        pl.numeroLetto from paziente p 
+        INNER JOIN postiletto pl ON p.IDPostoLetto= pl.IDPostoLetto
+        INNER JOIN setting s ON s.IDSetting= pl.IDSetting
+        INNER JOIN zone z ON s.IDZona = z.IDZona
+        WHERE ISNULL (p.dataTrasf) 
+        GROUP BY zona, setting, numeroLetto
+    `;
+    
+      const [rows]= await pool.query(sql, [])
+        console.log("rows=>", rows);
+        res.json(rows);
 
+        } catch (err) {
+        console.error('Errore query:', err);
+        res.status(500).json({ error: 'Errore server' });
+      }
+    });
 // SETTING
 router.get('/setting/:ID', async (req, res) => {
   const IDZona = req.params.ID;
@@ -231,11 +252,18 @@ ORDER BY p.numeroStanza, p.numeroLetto
   }
 });
 // SALVATAGGIO LETTO
-router.post('/salvaDatiPaziente', async (req, res) => {
+router.post('/salvaDatiPaziente/:livelloAccesso', async (req, res) => {
+  const livelloAccesso = req.params.livelloAccesso;
+  
+  
   const { IDPostoLetto, nomePaziente,cognomePaziente, dataNascita, sesso, settingDestinazione, dataTrasf,problemiAperti, settingApp } = req.body;
   const nuovoPaziente = [IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso, null, settingDestinazione, problemiAperti, settingApp];
   try {
-    
+    /*  if (livelloAccesso < 10) {
+      return res.status(403).json({ error: 'Accesso negato' });
+    }else if(livelloAccesso >=50){
+    nuovoPaziente[5] = null; 
+    } */
     // prima di fare l'inserimento devo controllare nella tabella pazienti che non siano presenti pazienti in quel letto senza data di trasf.
     const [rowsPzPresente] = await pool.query(`SELECT * FROM paziente
                               WHERE paziente.IDPostoLetto= ? AND (
@@ -279,11 +307,12 @@ router.post('/salvaDatiLetto', async (req, res) => {
         OR paziente.dataTrasf = '0000-00-00'
       );`, [IDPostoLetto]);
       
-
-    if (rows) {
-      const [info] = await pool.query(`UPDATE paziente 
-       SET dataTrasf=? 
-       WHERE IDPostoLetto=?`, [oggi, IDPostoLetto]);
+   
+    if (rows.length > 0) {
+     console.log([oggi,IDSetting,IDSetting, rows[0].IDPaziente])
+      const [info] = await pool.query(`UPDATE paziente p
+       SET p.dataTrasf=NOW(),p.IDSettingDestinazione=?, IDProvenienza =?
+       WHERE IDPaziente=?`, [IDSetting,IDSetting, rows[0].IDPaziente]);
     }
 
     const [info] = await pool.query(
@@ -476,11 +505,13 @@ router.get('/caricaAzienda', async (req, res) => {
   let newRows = [];
   try {
        const [rows] = await pool.query(
-      `SELECT a.IDAzienda, z.zona, a.nomeAzienda FROM aziende a
+      `SELECT a.IDAzienda,a.nomeAzienda FROM aziende a
+ORDER BY a.IDAzienda, nomeAzienda`,[]
+    );
+    /*SELECT a.IDAzienda, z.zona, a.nomeAzienda FROM aziende a
 INNER JOIN aziende_zone az ON az.idAzienda= a.IDAzienda
 INNER JOIN zone z ON z.IDZona =az.idZona
-ORDER BY a.IDAzienda, nomeAzienda,zona `,[]
-    );
+ORDER BY a.IDAzienda, nomeAzienda,zona*/
     if(rows.length !== 0){
         newRows = rows.map(row => ({
           "testo": row.nomeAzienda, 
@@ -583,9 +614,10 @@ router.get('/annullaTasferimento/:IDPostoLetto/:IDPaziente/:IDUtente', async (re
     res.status(500).json({ error: 'Impossibile eseguire l\'update' });
   } 
 });
-router.get('/aggiornaDataTrasf/:IDPaziente/:IDPostoLettoDestinazione/:IDUtente/:IDPostoLetto', async (req, res) => {
-  console.log("req.params=>", req.params);
+router.get('/aggiornaDataTrasf/:IDPaziente/:IDPostoLettoDestinazione/:IDUtente/:IDPostoLetto/:IDSettingDestinazione', async (req, res) => {
+  console.log("letto destinazione=>", req.params.IDSettingDestinazione);
   const IDPostoLetto = req.params.IDPostoLetto;
+  const IDSettingDestinazione = req.params.IDSettingDestinazione;
   const IDPaziente = req.params.IDPaziente;
   
   const IDUtente = req.params.IDUtente;
@@ -607,8 +639,8 @@ router.get('/aggiornaDataTrasf/:IDPaziente/:IDPostoLettoDestinazione/:IDUtente/:
 
         // 2️⃣ UPDATE data trasferimento
         await conn.query(
-            "UPDATE paziente SET dataTrasf = NOW() WHERE IDPaziente = ?",
-            [IDPaziente]
+            "UPDATE paziente SET dataTrasf = NOW() ,IDSettingDestinazione = ?,IDUtenteTrasf = ? WHERE IDPaziente = ?",
+            [IDSettingDestinazione,IDUtente,IDPaziente]
         );
          await conn.query(
             "UPDATE postiletto SET IDStatoLetto = 14  WHERE IDPostoLetto= ?",

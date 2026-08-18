@@ -19,7 +19,13 @@ function creaMenuSx(
     if (!window._menuListener) {
 
         window._menuListener = async function(e) {
-
+            //gestionePazientiRicoverati
+            if(e.target.classList.contains('gestionePazientiRicoverati')){
+                document.getElementById('dashboardReparti').innerHTML = "";
+                document.getElementById('tabellaTrasf').innerHTML = "";
+                tabellaRicoverati('dashboardReparti',user.livelloAccesso);
+            }
+            
             if (e.target.classList.contains('gestionePs')) {
                 document.getElementById('dashboardReparti').innerHTML = "";
                 await caricaSetting(user.IDUtente, user.IDPubblico);
@@ -56,9 +62,9 @@ function creaMenuSx(
     switch (IDPubblico) {
         case 50:
             menuSx.innerHTML = `
-                <ul class="list-group">
-                    <li class="list-group-item gestionePs voce-menuDx">TORNA A GESTIONE P.L.</li>
+                <ul class="list-group">                    
                     <li class="list-group-item gestioneTerritorio voce-menuDx">GESTIONE LETTI TERRITORIALI</li>
+                    <li class="list-group-item gestionePazientiRicoverati voce-menuDx">Lista Pazienti Ricoverati</li>
                     <li class="list-group-item dashboard voce-menuDx">DASHBOARD</li>
                     <li class="list-group-item gestioneLettiChiusi voce-menuDx">GESTIONE CHIUSURA LETTI</li>
                     <li class="list-group-item lettiLiberi voce-menuDx d-none">VISTA PIANO ANNO CORRENTE</li>

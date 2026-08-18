@@ -4,7 +4,8 @@ import pool  from '../config/db.js';
 import { isBefore, parseISO } from 'date-fns';
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-const oggi = format(new Date(), "yyyy-MM-dd", { locale: it });
+const oggi = format(new Date(), "yyyy-MM-dd HH:mm:ss");
+
 import { fileURLToPath } from 'url';
 
 
