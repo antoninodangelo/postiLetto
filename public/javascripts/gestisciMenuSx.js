@@ -56,8 +56,7 @@ function creaMenuSx(
     switch (IDPubblico) {
         case 50:
             menuSx.innerHTML = `
-                <ul class="list-group">
-                    <li class="list-group-item gestionePs voce-menuDx">TORNA A GESTIONE P.L.</li>
+                <ul class="list-group">                    
                     <li class="list-group-item gestioneTerritorio voce-menuDx">GESTIONE LETTI TERRITORIALI</li>
                     <li class="list-group-item dashboard voce-menuDx">DASHBOARD</li>
                     <li class="list-group-item gestioneLettiChiusi voce-menuDx">GESTIONE CHIUSURA LETTI</li>
