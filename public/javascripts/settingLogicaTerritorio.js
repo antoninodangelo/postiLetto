@@ -216,9 +216,9 @@ let datiForm = {
 
 
 async function caricaDati() {
-
     await caricaSetting(IDUtente, livelloAccesso);
     caricaStatoLetti();
+     caricaZona();
     generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
     /* if(livelloAccesso>=50){ 
@@ -228,7 +228,7 @@ async function caricaDati() {
     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
     tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso);
-    tabellaRicoverati('dashboardReparti',livelloAccesso);
+    tabellaRicoverati('tabellaTrasf',livelloAccesso);
     caricaSettingAppartenenza();
 }
 
@@ -593,6 +593,7 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
                     const response = await fetch(`/territorio/aggiornaDataTrasf/${p.IDPaziente}/${IDPostoLettoDestinazione}/${IDUtente}/${p.IDPostoLetto}/${IDSettingDestinazione}`);
                     await caricaSetting(IDUtente, livelloAccesso);
                     caricaStatoLetti();
+                   
                     generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
                     generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
                     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
@@ -680,9 +681,6 @@ function generaFormDinamico(config, storage, idFormHTML) {
         input.addEventListener('change', e => {
             storage[campo.id] = e.target.value;
         });
-
-
-
         // Appende l'input al wrapper e il wrapper al form principale
         wrapper.appendChild(input);
         formElement.appendChild(wrapper);
@@ -785,12 +783,11 @@ async function caricaZona() {
     try {
         const response = await fetch(`/territorio/caricaZona`);
         const azienda = await response.json();
-
+        console.log("Dati zona caricati:", azienda);
         // 🔥 Popolo settingUtente SENZA duplicati
         configurazioneFormPz.find(el => el.id === 'zona').options = azienda.map(s => s.testo);
         configurazioneFormPz.find(el => el.id === 'zona').values = azienda.map(s => s.valore);
-       console.log("Configurazione Form Paziente aggiornata con settingAppartenenza:", configurazioneFormPz.find(el => el.id === 'zona'));
-
+       
 
     } catch (error) {
         console.error('Errore nella routine caricasetting:', error);

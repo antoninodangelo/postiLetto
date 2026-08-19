@@ -143,7 +143,7 @@ router.get("/pazientiRicoverati", async(req, res) => {
     `;
     
       const [rows]= await pool.query(sql, [])
-        console.log("rows=>", rows);
+        
         res.json(rows);
 
         } catch (err) {
@@ -168,7 +168,7 @@ router.get('/setting/:ID', async (req, res) => {
 
 router.get('/settingAppartenenza/:idZona', async (req, res) => {
   const idZona = req.params.idZona;
-  console.log("idZona ricevuto:", idZona);
+  
   try {
     const [rows] = await pool.query(
       `SELECT distinct s.IDSetting, z.zona, s.setting
@@ -310,7 +310,7 @@ router.post('/salvaDatiLetto', async (req, res) => {
       
    
     if (rows.length > 0) {
-     console.log([oggi,IDSetting,IDSetting, rows[0].IDPaziente])
+     
       const [info] = await pool.query(`UPDATE paziente p
        SET p.dataTrasf=NOW(),p.IDSettingDestinazione=?, IDProvenienza =?
        WHERE IDPaziente=?`, [IDSetting,IDSetting, rows[0].IDPaziente]);
@@ -506,20 +506,23 @@ router.get('/caricaZona', async (req, res) => {
   let newRows = [];
   try {
        const [rows] = await pool.query(
-      `SELECT a.IDAzienda,a.nomeAzienda FROM aziende a
-ORDER BY a.IDAzienda, nomeAzienda`,[]
+      ` SELECT a.IDAzienda,a.nomeAzienda FROM aziende a
+ORDER BY a.IDAzienda, nomeAzienda `,[]
     );
-    /*SELECT a.IDAzienda, z.zona, a.nomeAzienda FROM aziende a
+    
+    /*SELECT a.IDAzienda, z.zona, a.nomeAzienda, z.IDZona FROM aziende a
 INNER JOIN aziende_zone az ON az.idAzienda= a.IDAzienda
 INNER JOIN zone z ON z.IDZona =az.idZona
 ORDER BY a.IDAzienda, nomeAzienda,zona*/
     if(rows.length !== 0){
         newRows = rows.map(row => ({
-          "testo": row.zona, 
-          "valore": row.IDZona
-        }));      
+          "testo": row.nomeAzienda, 
+          "valore": row.IDAzienda
+        }));   
+        console.log("newRows=>", newRows);   
         res.json(newRows);
     } else {
+        console.log("nessuna zona trovata");
         res.json([]);
     }
   
@@ -616,7 +619,7 @@ router.get('/annullaTasferimento/:IDPostoLetto/:IDPaziente/:IDUtente', async (re
   } 
 });
 router.get('/aggiornaDataTrasf/:IDPaziente/:IDPostoLettoDestinazione/:IDUtente/:IDPostoLetto/:IDSettingDestinazione', async (req, res) => {
-  console.log("letto destinazione=>", req.params.IDSettingDestinazione);
+  
   const IDPostoLetto = req.params.IDPostoLetto;
   const IDSettingDestinazione = req.params.IDSettingDestinazione;
   const IDPaziente = req.params.IDPaziente;
