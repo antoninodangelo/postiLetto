@@ -9,7 +9,8 @@ function creaMenuSx(
     settingUtente,
     gestisciChiusure,
     creaCardRepartoConLettiSVG,
-    gestionePiano
+    gestionePiano,
+    generaTabellaLettiOccupati
 ) {
 
     const menuSx = document.getElementById(gancio);
@@ -20,11 +21,10 @@ function creaMenuSx(
 
         window._menuListener = async function(e) {
 
-            if (e.target.classList.contains('gestionePs')) {
+            if (e.target.classList.contains('lettiOccupati')) {
                 document.getElementById('dashboardReparti').innerHTML = "";
-                await caricaSetting(user.IDUtente, user.IDPubblico);
+                await generaTabellaLettiOccupati('tabellaTrasf', user.IDPubblico);
             }
-
             if (e.target.classList.contains('dashboard')) {
                 creaCardRepartoConLettiSVG();
             }
@@ -59,6 +59,7 @@ function creaMenuSx(
                 <ul class="list-group">                    
                     <li class="list-group-item gestioneTerritorio voce-menuDx">GESTIONE LETTI TERRITORIALI</li>
                     <li class="list-group-item dashboard voce-menuDx">DASHBOARD</li>
+                    <li class="list-group-item lettiOccupati voce-menuDx">LETTI OCCUPATI</li>
                     <li class="list-group-item gestioneLettiChiusi voce-menuDx">GESTIONE CHIUSURA LETTI</li>
                     <li class="list-group-item lettiLiberi voce-menuDx d-none">VISTA PIANO ANNO CORRENTE</li>
                 </ul>`;
@@ -66,9 +67,7 @@ function creaMenuSx(
             case 10:
             menuSx.innerHTML = `
                 <ul class="list-group">
-                    <li class="list-group-item gestionePs voce-menuDx">TORNA A GESTIONE P.L.</li>
                     <li class="list-group-item gestioneTerritorio voce-menuDx">GESTIONE LETTI TERRITORIALI</li>
-                    
                 </ul>`;
             break;
     }

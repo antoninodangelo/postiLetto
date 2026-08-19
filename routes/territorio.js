@@ -77,6 +77,30 @@ router.get('/lettiLiberiSetting/:IDSetting', async (req, res) => {
     res.status(500).json([{ error: "Errore nel ricecere id dati posti liberi" }]);
   }
 });
+router.get('/lettiOccupatiGenerale/:livelloAccesso', async (req, res) => {
+    const { livelloAccesso } = req.params;
+    
+    const sql =`SELECT p.IDPaziente,z.zona,s.setting, concat(p.cognomePaziente," ", p.nomePaziente) AS nome,  
+                pl.numeroLetto from paziente p 
+                INNER JOIN postiletto pl ON p.IDPostoLetto= pl.IDPostoLetto
+                INNER JOIN setting s ON s.IDSetting= pl.IDSetting
+                INNER JOIN zone z ON s.IDZona = z.IDZona
+                WHERE ISNULL (p.dataTrasf) 
+                GROUP BY zona, setting, numeroLetto`;
+    // 1) Aggiorno il paziente
+    try{
+    const [rows]= await pool.query(sql,[]);   
+    if(rows.length === 0){
+      return res.json([{ numero: 0, setting: "Nessun letto libero" }]);
+    } else {
+      console.log("rows letti occupati",rows);
+      res.json(rows);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json([{ error: "Errore nel ricecere id dati posti liberi" }]);
+  }
+});
 // STATO LETTI
 router.get('/statoletti', async (req, res) => {
   try {

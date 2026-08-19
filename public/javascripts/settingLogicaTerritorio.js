@@ -39,7 +39,8 @@ fetch('/users/getUserData', { credentials: 'include' })
             settingUtente,
             gestisciChiusure,
             creaCardRepartoConLettiSVG,
-            gestionePiano
+            gestionePiano,
+            generaTabellaLettiOccupati
         );
     })
     .catch(err => {
@@ -228,8 +229,8 @@ async function caricaDati() {
     tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso);   
     caricaZona();
     caricaSettingAppartenenza();
+    
 }
-
 
 function generaTabellaPostiLiberi(IDUtente, idDivAggancio, livelloAccesso) {
 
@@ -242,6 +243,7 @@ function generaTabellaPostiLiberi(IDUtente, idDivAggancio, livelloAccesso) {
             //container.innerHTML = ""; // pulizia
             creaTabellaQuery(
                 dati,
+                
                 [
                     { label: "N° Letti Liberi", key: "LETTI LIBERI" },
                     { label: "Setting", key: "SETTING" }
@@ -250,6 +252,33 @@ function generaTabellaPostiLiberi(IDUtente, idDivAggancio, livelloAccesso) {
                 "Posti Letto Liberi",
                 "#009944"
             );
+        });
+}
+
+function generaTabellaLettiOccupati(idDivAggancio, livelloAccesso) {
+
+    fetch(`/territorio/lettiOccupatiGenerale/${livelloAccesso}`)
+        .then(res => res.json())
+        .then(dati => {
+            const container = document.getElementById(idDivAggancio);
+
+            if (!container) return console.error("Div non trovata:", idDivAggancio);
+            //container.innerHTML = ""; // pulizia
+           
+            creaTabellaQuery(
+                dati,
+                [
+                    { label: "#", key: "ID" },
+                    { label: "Zona", key: "zona" },
+                    { label: "Setting", key: "setting" },
+                    { label: "Nome", key: "nome" },
+                    { label: "N° Letto", key: "numeroLetto" }
+                   
+                ],
+                idDivAggancio,
+                "Posti Letto Occupati",
+                "#ec9f10"
+            ); 
         });
 }
 function generaTabellaPazientiDimessi(giorni, IDUtente, livelloAccesso) {
