@@ -4,6 +4,7 @@ import { tabellaDimissioni } from "./tabellaDimissioni.js";
 import { gestisciChiusure } from "./gestioneChiusure/gestisciChusuraLetti.js";
 import { creaCardRepartoConLettiSVG } from "./dash/dashboard.js";
 import { gestionePiano } from "./gestioneChiusure/gestionePiano.js";
+import {tabellaPazientiGestiti} from "./tabellaPazientiGestiti.js"
 
 let setting = [];
 let settingUtente = [];
@@ -42,7 +43,8 @@ fetch('/users/getUserData', { credentials: 'include' })
             gestisciChiusure,
             creaCardRepartoConLettiSVG,
             gestionePiano,
-            generaTabellaLettiOccupati
+            generaTabellaLettiOccupati,
+            tabellaPazientiGestiti
         );
     })
     .catch(err => {
@@ -219,7 +221,7 @@ let datiForm = {
 async function caricaDati() {
     await caricaSetting(IDUtente, livelloAccesso);
     caricaStatoLetti();
-     caricaZona();
+    caricaZona();
     generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
     /* if(livelloAccesso>=50){ 
@@ -228,8 +230,9 @@ async function caricaDati() {
    
     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
-    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso);
-    tabellaRicoverati('tabellaTrasf',livelloAccesso);
+    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi);
+
+   // tabellaRicoverati('tabellaRicoverati',livelloAccesso);
     caricaSettingAppartenenza();
     
 }
@@ -258,7 +261,6 @@ function generaTabellaPostiLiberi(IDUtente, idDivAggancio, livelloAccesso) {
 }
 
 function generaTabellaLettiOccupati(idDivAggancio, livelloAccesso) {
-
     fetch(`/territorio/lettiOccupatiGenerale/${livelloAccesso}`)
         .then(res => res.json())
         .then(dati => {
@@ -270,7 +272,7 @@ function generaTabellaLettiOccupati(idDivAggancio, livelloAccesso) {
             creaTabellaQuery(
                 dati,
                 [
-                    { label: "#", key: "ID" },
+                    { label: "#", key: "IDPaziente" },
                     { label: "Zona", key: "zona" },
                     { label: "Setting", key: "setting" },
                     { label: "Nome", key: "nome" },
@@ -473,16 +475,11 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
     for (const settingID of settings) {
 
         let pazienti = null;
-        /* if (livelloAccesso >= 50) {
-            const response = await fetch(`/getPazienti`);
-            pazienti = await response.json();
-            console.log(pazienti);
-        } else { */
+       
 
         const response = await fetch(`/territorio/pazientiPerSetting/${settingID}`);
         pazienti = await response.json();
-        //}
-
+    
         const responseSetting = await fetch(`/territorio/getSettingDestinazione`);
         const settingData = await responseSetting.json();
 
@@ -498,13 +495,13 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
         const table = document.createElement("table");
         table.className = "table table-striped table-bordered table-hover mb-4";
         let colSetting = "";
-        let colAzioneTrasf = '';
+        let colAzioneTrasf = '<th>dimetti</th>';
         (livelloAccesso >= 50) ? colSetting = `<th>setting</th>` : colSetting;
         (livelloAccesso >= 50) ? colAzioneTrasf = `<th>trasferisci</th>` : colAzioneTrasf;
         table.innerHTML = `
     <thead class="table table-primary">
         <tr>
-            <th colspan="${mostraDestinazione ? 9 : 5}" class="text-center">${nomeSetting}</th>
+            <th colspan="${mostraDestinazione ? 9 : 6}" class="text-center">${nomeSetting}</th>
         </tr>
         <tr>
             ${colSetting}
@@ -544,7 +541,7 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
             selectLettiLiberi += `</select>`;
             document.addEventListener('change',async (e)=>{
                 if (e.target.id=== 'selectSetting_'+p.IDPaziente){
-                        console.log("evento=>", e.target)
+                        
                 let IDSettingLettiLiberi= e.target.value;
                 const td= e.target.closest("td");
                 const nextTd = td.nextElementSibling;     // prendo la cella successiva
@@ -570,16 +567,13 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
             })
 
 
-            /*  const lettiLiberiSetting = await fetch(`/territorio/lettiLiberiSetting/${settingSelezionato}`);
-             console.log(await lettiLiberiSetting.json(),"i posti liberi"); */
-            //const selectLettiLiberi=`<select id="selectLettiLiberi_${p.IDPaziente}" class="form-select">`;
-
+           
             const tr = document.createElement("tr");
             tr.dataset.idPaziente = p.IDPaziente;
             tr.dataset.idPostoLetto = p.IDPostoLetto;
             tr.dataset.setting = p.setting;
             let colSetting = "";
-            let colAzioneTrasf = '';
+            let colAzioneTrasf = '<td><button class="btn btn-primary btn-sm btn-dimetti">Dimetti Paziente</button></td>';
             colSetting = (livelloAccesso >= 50)
                 ? `<td>${p.setting}</td>`
                 : "";
@@ -597,9 +591,8 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
     </td>
     ${colAzioneTrasf}
 `;
-    
-            tr.querySelector(".btn-cancella").addEventListener("click", async () => {
-                await dimettiPaziente(p.IDPaziente, p.IDPostoLetto, livelloAccesso);
+               tr.querySelector(".btn-cancella").addEventListener("click", async () => {               
+                await fetch(`/territorio/cancellaInserimento/${p.IDPaziente}/${p.IDPostoLetto}`)
                 document.getElementById('dashboardReparti').innerHTML = "";
                 await caricaSetting(IDUtente, livelloAccesso);
                 caricaStatoLetti();
@@ -608,6 +601,19 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
                 generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
                 generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
             });
+             if (tr.querySelector('.btn-dimetti')) {
+
+                 tr.querySelector(".btn-dimetti").addEventListener("click", async () => {
+                     await dimettiPaziente(p.IDPaziente, p.IDPostoLetto, livelloAccesso,IDUtente);
+                     document.getElementById('dashboardReparti').innerHTML = "";
+                     await caricaSetting(IDUtente, livelloAccesso);
+                     caricaStatoLetti();
+                     generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
+                     generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
+                     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
+                     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
+                 });
+             }
             if (tr.querySelector('.btn-trasferisci')) {
                 tr.querySelector('.btn-trasferisci').addEventListener('click', async (e) => {
                     if (document.getElementById(`selectSetting_${p.IDPaziente}`).value === "") {
@@ -621,12 +627,12 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
                     const IDSettingDestinazione = document.getElementById(`selectSetting_${p.IDPaziente}`).value;
                     const response = await fetch(`/territorio/aggiornaDataTrasf/${p.IDPaziente}/${IDPostoLettoDestinazione}/${IDUtente}/${p.IDPostoLetto}/${IDSettingDestinazione}`);
                     await caricaSetting(IDUtente, livelloAccesso);
-                    caricaStatoLetti();
-                   
+                    caricaStatoLetti();                   
                     generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
                     generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
                     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
                     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
+                    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,generaTabellaPazienti,settingUtente);
 
                 })
             }
@@ -640,8 +646,8 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
 }
 
 
-async function dimettiPaziente(IDPaziente, IDPostoLetto, livelloAccesso) {
-    const responce = await fetch(`/territorio/dimettiPaziente/${IDPaziente}/${IDPostoLetto}/${livelloAccesso}`);
+async function dimettiPaziente(IDPaziente, IDPostoLetto, livelloAccesso,IDUtente) {
+    const responce = await fetch(`/territorio/dimettiPaziente/${IDPaziente}/${IDPostoLetto}/${livelloAccesso}/${IDUtente}`);
 }
 /*
  * ROUTINE: Genera il form e mappa i dati in tempo reale
@@ -758,10 +764,7 @@ function generaFormDinamico(config, storage, idFormHTML) {
             generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
             generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
             generaTabellaPostiChiusi(IDUtente, 'lettiChiusi');
-            if(livelloAccesso>=50){
-                alert ("genere ala tabella dei pazienti ricoverati");
-            }
-            
+         
 
         } catch (error) {
             console.error('Errore durante il salvataggio:', error);
@@ -798,8 +801,7 @@ async function caricaSettingAppartenenza(idZona=0) {
         if(setting.length !==0){
            configurazioneFormPz.find(el => el.id === 'settingApp').options = setting.map(s => s.setting);
             configurazioneFormPz.find(el => el.id === 'settingApp').values = setting.map(s => s.IDSetting);
-            console.log("Configurazione Form Paziente aggiornata con settingAppartenenza:", configurazioneFormPz.find(el => el.id === 'settingApp'));
-
+           
  
         }
         // 🔥 Popolo settingUtente SENZA duplicati
@@ -812,7 +814,7 @@ async function caricaZona() {
     try {
         const response = await fetch(`/territorio/caricaZona`);
         const azienda = await response.json();
-        console.log("Dati zona caricati:", azienda);
+        
         // 🔥 Popolo settingUtente SENZA duplicati
         configurazioneFormPz.find(el => el.id === 'zona').options = azienda.map(s => s.testo);
         configurazioneFormPz.find(el => el.id === 'zona').values = azienda.map(s => s.valore);
@@ -995,7 +997,7 @@ function creaReparto(nome, IDSetting, livelloAccesso) {
                      pzDimesso = "Inserisci";
                 };
                 // Stati non consentiti: inseriamo gli ID in un array per pulizia
-                console.log(icona, 'valore dellicona', labelStato);
+                
                 if (icona) {
                     lettoElement.innerHTML = icona;
                 } else {

@@ -365,15 +365,16 @@ router.get('/pazientiDimessi/:giorni/:IDUtente', async (req, res) => {
     res.status(500).json([{ numero: 0, setting: "Nessun letto libero" }]);
   }
 });
+///da TabellaDimissioni.js
 router.get('/pazientiDimessiPerSetting/:IDUtente/:livelloAccesso',async (req,res) =>{
   const IDUtente =req.params.IDUtente;
   const livelloAcesso = req.params.livelloAccesso;
    let sql ="";
-   let params=[];
+   let  params=[IDUtente];
    
   switch(true){
     case (livelloAcesso <50):
-    sql=`
+   sql=`
     SELECT 
     s.setting,
     p.*,
@@ -394,31 +395,17 @@ INNER JOIN utenti u
 INNER JOIN setting s1 
     ON p.IDSettingDestinazione = s1.IDSetting
 WHERE u.IDUtente = ?
-  AND DATE(p.dataTrasf) = CURDATE();`;
-    params=[IDUtente];
+  AND DATE(p.dataTrasf) = CURDATE()
+  AND u.ATTIVO =1`;   
+    
     break;
   case (livelloAcesso >=50):
-    sql = `SELECT 
-    s.setting,
-    p.*,
-    pl.numeroLetto,
-    pl.IDPostoLetto,
-    s1.setting AS settingDestinazione,
-    CONCAT_WS(' ', u1.cognome, u1.nome) AS "BED MANAGER",
-    DATE_FORMAT(p.dataNascita, '%d/%m/%Y') AS dataNascita,
-    DATE_FORMAT(p.dataTrasf, '%H:%i') AS ora
-FROM paziente p
-INNER JOIN postiletto pl 
-    ON pl.IDPostoLetto = p.IDPostoLetto
-INNER JOIN setting s 
-    ON s.IDSetting = pl.IDSetting
-INNER JOIN setting s1 
-    ON p.IDSettingDestinazione = s1.IDSetting
-INNER JOIN utenti u1 
-    ON u1.IDUtente = p.IDUtenteTrasf
-WHERE DATE(p.dataTrasf) = CURDATE();
-`
-    params=[];
+    
+    sql = `SELECT p.IDPaziente, s.setting, p.nomePaziente, p.cognomePaziente,p.sesso, pl.numeroLetto, pl.IDPostoLetto,p.IDPazienteProv FROM paziente p
+JOIN postiletto pl ON p.IDPostoLetto= pl.IDPostoLetto
+JOIN setting s ON s.IDSetting = pl.IDSetting
+WHERE p.IDUtenteTrasf = ? AND  ISNULL(p.dataTrasf) AND p.attivo = 1
+ `    
   break;
   }
   
@@ -557,21 +544,28 @@ try {
   }
 
 })
-router.get('/annullaTasferimento/:IDPostoLetto/:IDPaziente/:IDUtente', async (req, res) => {
+router.get('/annullaTasferimento/:IDPostoLetto/:IDPaziente/:IDUtente/:IDPazienteProv', async (req, res) => {
   const IDPostoLetto = req.params.IDPostoLetto;
   const IDPaziente =req.params.IDPaziente;
   const IDUtente = req.params.IDUtente;
+  const IDPazienteProv = req.params.IDPazienteProv;
+
+  console.log(IDPostoLetto,IDPaziente,IDUtente,IDPazienteProv, "questi sono i parametri");
   
-  // Sostituisci 'nome_tabella' e 'nome_campo_data' con i tuoi dati reali
-  // NOW() inserisce data e ora correnti (AAAA-MM-GG HH:MM:SS)
-  const sql = `UPDATE paziente p SET p.dataTrasf=?, p.IDSettingDestinazione=?, p.IDUtenteTrasf=? WHERE IDPaziente = ? `;
-/*   const sql_letto =`UPDATE postiletto p SET p.IDStatoLetto= 13
+  const sql_delete=`DELETE FROM paziente WHERE IDPaziente = ?`;
+  const sql_letto_bording =`UPDATE postiletto p SET p.IDStatoLetto= 14
+                    WHERE p.IDPostoLetto= ?`;
+  
+  const sql = `UPDATE paziente p SET p.dataTrasf=?, p.IDSettingDestinazione=?, p.IDUtenteTrasf=?, p.attivo=1, p.dataTrasf=null WHERE IDPaziente = ? `;
+   const sql_letto =`UPDATE postiletto p SET p.IDStatoLetto= 14
                     WHERE p.IDPostoLetto= ?`
- */
+ 
   try {
-    const [result] = await pool.execute(sql, ["",null,IDUtente,IDPaziente]);
+      const [result_delete] = await pool.execute(sql_delete,[IDPaziente]);
+      const [result_letto_bording] = await pool.execute(sql_letto_bording,[IDPostoLetto]);
+    const [result] = await pool.execute(sql, ["",null,"",IDPazienteProv]);
   
-    const [result1]= await pool.execute(sql_letto, [IDPostoLetto]);
+    const [result1]= await pool.execute(sql_letto, [IDPaziente]);
     
     if (result) {
       res.json(result);
@@ -649,7 +643,6 @@ router.get("/sottraiBoarding/:idSetting", async (req, res) => {
             WHERE IDSetting = ? AND IDStatoLetto = 14
             ORDER BY numeroLetto DESC
             LIMIT 1;
-
             SELECT COUNT(*) AS conteggio
             FROM postiletto
             WHERE IDSetting = ?;
@@ -659,6 +652,7 @@ router.get("/sottraiBoarding/:idSetting", async (req, res) => {
 
         const ultimoLetto = rows?.[0]?.[0] ?? null;
         const totale = rows?.[1]?.[0]?.conteggio ?? 0;
+        console.log("Ultimo letto:", ultimoLetto);
 
         console.log("Totale letti:", totale);
 

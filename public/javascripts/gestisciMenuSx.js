@@ -1,5 +1,3 @@
-
-
 function creaMenuSx(
     IDPubblico,
     gancio,
@@ -10,7 +8,8 @@ function creaMenuSx(
     gestisciChiusure,
     creaCardRepartoConLettiSVG,
     gestionePiano,
-    generaTabellaLettiOccupati
+    generaTabellaLettiOccupati,
+    tabellaPazientiGestiti
 ) {
 
     const menuSx = document.getElementById(gancio);
@@ -20,16 +19,12 @@ function creaMenuSx(
     if (!window._menuListener) {
 
         window._menuListener = async function(e) {
-            //gestionePazientiRicoverati
-            if(e.target.classList.contains('gestionePazientiRicoverati')){
+
+            if (e.target.classList.contains('lettiOccupati')) {
                 document.getElementById('dashboardReparti').innerHTML = "";
-                document.getElementById('tabellaTrasf').innerHTML = "";
-                tabellaRicoverati('dashboardReparti',user.livelloAccesso);
-            }
-            
-            if (e.target.classList.contains('gestionePs')) {
-                document.getElementById('dashboardReparti').innerHTML = "";
+                document.getElementById('tabellaDimissioni').innerHTML = "";
                 await generaTabellaLettiOccupati('tabellaTrasf', user.IDPubblico);
+
             }
             if (e.target.classList.contains('dashboard')) {
                 creaCardRepartoConLettiSVG();
@@ -48,10 +43,19 @@ function creaMenuSx(
             }
 
             if (e.target.classList.contains('gestioneTerritorio')) {
-                document.getElementById('dashboardReparti').innerHTML = "";
-                document.getElementById('tabellaTrasf').innerHTML = "";
+               // document.getElementById('dashboardReparti').innerHTML = "";
+                //document.getElementById('tabellaTrasf').innerHTML = "";
                 window.location.href = '/territorio';
             }
+            if (e.target.classList.contains('pazientiGestiti')) {
+                document.getElementById('dashboardReparti').innerHTML = "";
+                document.getElementById('tabellaTrasf').innerHTML = "";
+                document.getElementById('tabellaDimissioni').innerHTML = "";
+                
+                tabellaPazientiGestiti ("dashboardReparti",6, user.IDPubblico)
+            }
+
+            
         };
 
         // 🔥 Aggiungo il listener UNA sola volta
@@ -63,18 +67,19 @@ function creaMenuSx(
         case 50:
             menuSx.innerHTML = `
                 <ul class="list-group">                    
-                    <li class="list-group-item gestionePs voce-menuDx">GESTIONE LETTI TERRITORIALI</li>
-                    <li class="list-group-item gestionePazientiRicoverati voce-menuDx">Lista Pazienti Ricoverati</li>
-                    <li class="list-group-item dashboard voce-menuDx">DASHBOARD</li>
-                    <li class="list-group-item lettiOccupati voce-menuDx">LETTI OCCUPATI</li>
-                    <li class="list-group-item gestioneLettiChiusi voce-menuDx">GESTIONE CHIUSURA LETTI</li>
-                    <li class="list-group-item lettiLiberi voce-menuDx d-none">VISTA PIANO ANNO CORRENTE</li>
+                    <li class="list-group-item gestioneTerritorio voce-menuDx pointer">GESTIONE LETTI TERRITORIALI</li>
+                    <li class="list-group-item dashboard voce-menuDx pointer">DASHBOARD</li>
+                    <li class="list-group-item lettiOccupati voce-menuDx pointer">LETTI OCCUPATI</li>
+                    <li class="list-group-item pazientiGestiti voce-menuDx pointer">PAZIENTI GESTITI</li>
+                    
+                    <li class="list-group-item gestioneLettiChiusi voce-menuDx pointer">GESTIONE CHIUSURA LETTI</li>
+                    <li class="list-group-item lettiLiberi voce-menuDx d-none pointer">VISTA PIANO ANNO CORRENTE</li>
                 </ul>`;
             break;
             case 10:
             menuSx.innerHTML = `
                 <ul class="list-group">
-                    <li class="list-group-item gestioneTerritorio voce-menuDx">GESTIONE LETTI TERRITORIALI</li>
+                    <li class="list-group-item gestioneTerritorio voce-menuDx pointer">GESTIONE LETTI TERRITORIALI</li>
                 </ul>`;
             break;
     }

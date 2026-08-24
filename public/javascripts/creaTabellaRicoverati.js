@@ -5,7 +5,6 @@
  * @param {integer} IDSetting - ID del setting da visualizzare 
  */
 async function tabellaRicoverati(containerId,livelloAccesso) {
-  console.log(containerId,livelloAccesso);
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML="";

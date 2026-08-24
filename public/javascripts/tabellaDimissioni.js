@@ -1,98 +1,141 @@
-/**
- * Crea una tabella Bootstrap con 5 colonne e la inserisce nel contenitore indicato.
- * @param {string} containerId - ID del div dove appendere la tabella
- * @param {Array} data - Array di oggetti con i dati dei pazienti
- * @param {integer} IDSetting - ID del setting da visualizzare 
- */
-async function tabellaDimissioni(containerId, IDUtente,livelloAccesso) {
-  console.log(containerId, IDUtente,livelloAccesso);
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  container.innerHTML="";
-    const datiDimessi = await fetch(`/pazientiDimessiPerSetting/${IDUtente}/${livelloAccesso}`);
-    const data = await datiDimessi.json();
-    
-if(data.length === 0 ) return;
+async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, generaTabellaPazienti, settingUtente) {
 
-  // Crea la tabella
-  const table = document.createElement("table");
-  table.className = "table table-striped table-bordered align-middle";
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
-  // ----- THEAD -----
-  const thead = document.createElement("thead");
-  thead.className = "table-dark";
+    container.innerHTML = "";
 
-  const headerRow = document.createElement("tr");
-  const headers = ["setting","Nome", "Cognome", "Data di nascita","sesso", "Numero letto","ORA ASS. SETTING","BED MANAGER"];
-  
-  if(livelloAccesso>10)headers.push("ANNULLA");
-    const tr1= document.createElement("tr");
-  tr1.classList.add("text-center", "fw-bold");
-const th1 =document.createElement("th");     
-    th1.colSpan=headers.length;
-    th1.innerText="PAZIENTI A CUI E' STATO ASSEGNATO IL REPARTO DI DESTiNAZIONE";
-    tr1.appendChild(th1);
-    thead.appendChild(tr1);
-  headers.forEach(text => {
-   
-    const th = document.createElement("th");
-    th.textContent = text;   
-    
-    headerRow.appendChild(th);
+    // --- FETCH DATI ---
+    const res = await fetch(`/pazientiDimessiPerSetting/${IDUtente}/${livelloAccesso}`);
+    if (!res.ok) {
+        console.error("Errore nel recupero dei pazienti dimessi");
+        return;
+    }
 
-  });
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+        return; // nessun dimesso → nessuna tabella
+    }
 
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
+    // --- CREA TABELLA ---
+    const table = document.createElement("table");
+    table.className = "table table-striped table-bordered align-middle";
 
-  // ----- TBODY -----
-  const tbody = document.createElement("tbody");
+    // --- THEAD ---
+    const thead = document.createElement("thead");
+    thead.className = "table-dark";
 
-  data.forEach(p => {
-    const tr = document.createElement("tr");
+    // Titolo superiore
+    const trTitle = document.createElement("tr");
+    trTitle.classList.add("text-center", "fw-bold");
 
-    // Celle dati
-    ["setting", "nomePaziente", "cognomePaziente", "dataNascita","sesso","numeroLetto","ora","BED MANAGER"].forEach(key => {
-      const td = document.createElement("td");
-      td.textContent = p[key];
-      tr.appendChild(td);
+    const thTitle = document.createElement("th");
+    thTitle.colSpan = livelloAccesso > 10 ? 9 : 8;
+    thTitle.textContent = "PAZIENTI A CUI È STATO ASSEGNATO IL REPARTO DI DESTINAZIONE";
+
+    trTitle.appendChild(thTitle);
+    thead.appendChild(trTitle);
+
+    // Intestazioni colonne
+    const headerRow = document.createElement("tr");
+    const headers = [
+        "setting",
+        "Nome",
+        "Cognome",
+        "Data di nascita",
+        "sesso",
+        "Numero letto",
+        "ORA ASS. SETTING",
+        "BED MANAGER"
+    ];
+
+    if (livelloAccesso > 10) headers.push("ANNULLA");
+
+    headers.forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        headerRow.appendChild(th);
     });
-   
-console.log(livelloAccesso,"questo è il livello");
-if(livelloAccesso > 10){
-   const trAnnulla = document.createElement('td');
-    const b_annulla_trasf = document.createElement('button');
-      b_annulla_trasf.classList.add(
-  "btn",
-  "btn-outline-danger",
-  "btn-sm",
-  "d-flex",
-  "align-items-center",
-  "gap-1"
-);
-  b_annulla_trasf.dataset.IDPaziente = p.IDPaziente;
-  b_annulla_trasf.dataset.IDPostoLetto = p.IDPostoLetto;
-  b_annulla_trasf.innerHTML = `<i class="bi bi-x-circle"></i> Annulla trasf.`;
-  b_annulla_trasf.addEventListener('click',async (e)=> 
-    {
-        await fetch(`/annullaTasferimento/${b_annulla_trasf.dataset.IDPostoletto}/${p.IDPaziente}/${IDUtente}`);
-        tabellaDimissioni(containerId, IDUtente,livelloAccesso)
-        
-    })
 
-    tr.appendChild(b_annulla_trasf);
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    // --- TBODY ---
+    const tbody = document.createElement("tbody");
+
+    data.forEach(p => {
+
+        const tr = document.createElement("tr");
+
+        // Celle dati
+        const campi = [
+            "setting",
+            "nomePaziente",
+            "cognomePaziente",
+            "dataNascita",
+            "sesso",
+            "numeroLetto",
+            "ora",
+            "BED MANAGER"
+        ];
+
+        campi.forEach(key => {
+            const td = document.createElement("td");
+            td.textContent = p[key];
+            tr.appendChild(td);
+        });
+
+        // --- BOTTONE ANNULLA TRASFERIMENTO ---
+        if (livelloAccesso > 10) {
+
+            const tdBtn = document.createElement("td");
+
+            const b_annulla_trasf = document.createElement("button");
+            b_annulla_trasf.classList.add(
+                "btn",
+                "btn-outline-danger",
+                "btn-sm",
+                "d-flex",
+                "align-items-center",
+                "gap-1"
+            );
+
+            // dataset corretti
+            b_annulla_trasf.dataset.idPaziente = p.IDPaziente;
+            b_annulla_trasf.dataset.idPazienteProv = p.IDPazienteProv;
+
+            b_annulla_trasf.innerHTML = `<i class="bi bi-x-circle"></i> Annulla trasf.`;
+
+            b_annulla_trasf.addEventListener("click", async () => {
+
+                // 1) Recupero ID letto provvisorio
+                const resLetto = await fetch(`/territorio/getIDPostolettoProv/${p.IDPazienteProv}`);
+                const lettoProv = await resLetto.json();
+
+                console.log("Letto provvisorio:", lettoProv);
+
+                // 2) Annulla trasferimento
+                await fetch(`/territorio/annullaTasferimento/${lettoProv}/${p.IDPaziente}/${IDUtente}/${p.IDPazienteProv}`);
+
+                // 3) Refresh tabelle
+                document.getElementById("tabellaTrasf").innerHTML = "";
+                generaTabellaPostiLiberi(IDUtente, "tabellaTrasf", livelloAccesso);
+                generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);               
+                tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, generaTabellaPazienti, settingUtente);
+            });
+
+            tdBtn.appendChild(b_annulla_trasf);
+            tr.appendChild(tdBtn);
+        }
+
+        tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+
+    // --- APPEND FINALE ---
+    container.innerHTML = "";
+    container.appendChild(table);
 }
 
-    
-
-   tbody.appendChild(tr)
-  });
-
-  table.appendChild(tbody);
-
-  // Append finale
-  container.innerHTML = ""; // pulizia
-  container.appendChild(table);
-}
-
-export {tabellaDimissioni}
+export { tabellaDimissioni };
