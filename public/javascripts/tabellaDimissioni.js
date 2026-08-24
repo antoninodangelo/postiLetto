@@ -32,9 +32,9 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
     const thTitle = document.createElement("th");
     thTitle.colSpan = livelloAccesso > 10 ? 9 : 8;
     thTitle.textContent = "PAZIENTI A CUI È STATO ASSEGNATO IL REPARTO DI DESTINAZIONE";
-
     trTitle.appendChild(thTitle);
     thead.appendChild(trTitle);
+    
 
     // Intestazioni colonne
     const headerRow = document.createElement("tr");

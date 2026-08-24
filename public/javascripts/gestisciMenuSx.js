@@ -67,11 +67,10 @@ function creaMenuSx(
         case 50:
             menuSx.innerHTML = `
                 <ul class="list-group">                    
-                    <li class="list-group-item gestioneTerritorio voce-menuDx pointer">GESTIONE LETTI TERRITORIALI</li>
-                    <li class="list-group-item dashboard voce-menuDx pointer">DASHBOARD</li>
+                    <li class="list-group-item gestioneTerritorio voce-menuDx pointer">GESTIONE LETTI TERRITORIALI</li>                    
                     <li class="list-group-item lettiOccupati voce-menuDx pointer">LETTI OCCUPATI</li>
                     <li class="list-group-item pazientiGestiti voce-menuDx pointer">PAZIENTI GESTITI</li>
-                    
+                    <li class="list-group-item dashboard voce-menuDx pointer">DASHBOARD</li>
                     <li class="list-group-item gestioneLettiChiusi voce-menuDx pointer">GESTIONE CHIUSURA LETTI</li>
                     <li class="list-group-item lettiLiberi voce-menuDx d-none pointer">VISTA PIANO ANNO CORRENTE</li>
                 </ul>`;
