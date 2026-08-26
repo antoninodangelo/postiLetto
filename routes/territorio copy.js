@@ -88,13 +88,13 @@ router.get('/lettiOccupatiGenerale/:livelloAccesso', async (req, res) => {
                 INNER JOIN postiletto pl ON p.IDPostoLetto= pl.IDPostoLetto
                 INNER JOIN setting s ON s.IDSetting= pl.IDSetting
                 INNER JOIN zone z ON s.IDZona = z.IDZona
-                WHERE ISNULL (p.dataDimissione)  and p.attivo =1
+                WHERE ISNULL (p.dataTrasf) 
                 GROUP BY zona, setting, numeroLetto`;
     // 1) Aggiorno il paziente
     try{
     const [rows]= await pool.query(sql,[]);   
     if(rows.length === 0){
-      return res.json([{ numero: 0, setting: "Nessun letto Occupato" }]);
+      return res.json([{ numero: 0, setting: "Nessun letto libero" }]);
     } else {
       console.log("rows letti occupati",rows);
       res.json(rows);
@@ -143,11 +143,12 @@ router.get("/pazientiPerSetting/:IDSetting", async(req, res) => {
             l.numeroLetto,
             l.IDPostoLetto,
             s.setting
-        FROM paziente p        
+        FROM paziente p
+        
         LEFT JOIN postiLetto l ON l.IDPostoLetto = p.IDPostoLetto
         INNER JOIN setting s ON s.IDSetting = l.IDSetting
         WHERE l.IDSetting = ?
-          AND p.dataDimissione IS NULL and p.attivo =1
+          AND p.dataTrasf IS NULL
         ORDER BY p.cognomePaziente, p.nomePaziente
     `;
     
@@ -164,7 +165,7 @@ router.get("/pazientiRicoverati", async(req, res) => {
         INNER JOIN postiletto pl ON p.IDPostoLetto= pl.IDPostoLetto
         INNER JOIN setting s ON s.IDSetting= pl.IDSetting
         INNER JOIN zone z ON s.IDZona = z.IDZona
-        WHERE ISNULL (p.dataDimissione) 
+        WHERE ISNULL (p.dataTrasf) 
         GROUP BY zona, setting, numeroLetto
     `;
     
@@ -257,17 +258,16 @@ router.get('/letti/:ID', async (req, res) => {
     p.IDSetting, p.IDPostoLetto, p.numeroLetto, p.IDStatoLetto, p.numeroStanza,
     paziente.IDPaziente, paziente.nomePaziente, paziente.cognomePaziente,
     paziente.dataNascita, paziente.sesso, paziente.dataTrasf,
-    paziente.IDSettingDestinazione,paziente.dataTrasf, paziente.dataDimissione
+    paziente.IDSettingDestinazione,paziente.dataTrasf
 FROM postiLetto p
 LEFT JOIN paziente  
     ON paziente.IDPostoLetto = p.IDPostoLetto
-    AND paziente.attivo = 1
    AND (
-        paziente.dataDimissione IS NULL
-        OR paziente.dataDimissione = 0
-        OR paziente.dataDimissione = '0000-00-00'
+        paziente.dataTrasf IS NULL
+        OR paziente.dataTrasf = 0
+        OR paziente.dataTrasf = '0000-00-00'
       )
-WHERE p.IDSetting = ? and p.attivo=1
+WHERE p.IDSetting = ?
 ORDER BY p.numeroStanza, p.numeroLetto
 `,
       [IDSetting]
@@ -287,7 +287,11 @@ router.post('/salvaDatiPaziente/:livelloAccesso', async (req, res) => {
   const { IDPostoLetto, nomePaziente,cognomePaziente, dataNascita, sesso, settingDestinazione, dataTrasf,problemiAperti, settingApp } = req.body;
   const nuovoPaziente = [IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso, null, settingDestinazione, problemiAperti, settingApp];
   try {
-    
+    /*  if (livelloAccesso < 10) {
+      return res.status(403).json({ error: 'Accesso negato' });
+    }else if(livelloAccesso >=50){
+    nuovoPaziente[5] = null; 
+    } */
     // prima di fare l'inserimento devo controllare nella tabella pazienti che non siano presenti pazienti in quel letto senza data di trasf.
     const [rowsPzPresente] = await pool.query(`SELECT * FROM paziente
                               WHERE paziente.IDPostoLetto= ? AND (
@@ -297,13 +301,13 @@ router.post('/salvaDatiPaziente/:livelloAccesso', async (req, res) => {
       );`, [IDPostoLetto]);
     
     if(rowsPzPresente.length >0){
-      const [rows]= await pool.query('UPDATE paziente set dataDimissione=? where IDPostoLetto = ? and IDPaziente = ?',[oggi,IDPostoLetto,rowsPzPresente[0].IDPaziente])
+      const [rows]= await pool.query('UPDATE paziente set dataTrasf=? where IDPostoLetto = ? and IDPaziente = ?',[oggi,IDPostoLetto,rowsPzPresente[0].IDPaziente])
       const [info]= await pool.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto])
     }
     
-    // SE abbiamo rowsPzPresente devo inserire la data di trasf. nella tupla troavata e eseguire l'inserimeto
+    // SE abbiamo rowsPzPresente devo inserire la data di trasf. nella tupla toravata e eseguire l'inserimeto
 
-    const [info] = await pool.query(`INSERT INTO paziente (IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso,dataDimissione,IDSettingDestinazione,problemiAperti,IDProvenienza)
+    const [info] = await pool.query(`INSERT INTO paziente (IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso,dataTrasf,IDSettingDestinazione,problemiAperti,IDProvenienza)
       VALUES (?,?, ?,?,?,?,?,?,?)`, nuovoPaziente);
     if(info){
       const [info1]= await pool.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto]);
@@ -326,9 +330,9 @@ router.post('/salvaDatiLetto', async (req, res) => {
   try {
     const [rows] = await pool.query(`SELECT * FROM paziente
                               WHERE paziente.IDPostoLetto= ? AND (
-        paziente.dataDimissione IS NULL
-        OR paziente.dataDimissione = 0
-        OR paziente.dataDimissione = '0000-00-00'
+        paziente.dataTrasf IS NULL
+        OR paziente.dataTrasf = 0
+        OR paziente.dataTrasf = '0000-00-00'
       );`, [IDPostoLetto]);
       
    
@@ -379,9 +383,9 @@ router.get('/dimettiPaziente/:IDPaziente/:IDPostoLetto/:livelloAccesso/:IDUtente
 
     // 1) Aggiorno il paziente
     const [infoPaziente] = await pool.query(
-      `UPDATE paziente p SET p.dataDimissione= ?, IDProvenienza =?, attivo = 0
+      `UPDATE paziente p SET p.dataTrasf=?, p.dataDimissione= ?, IDProvenienza =?, attivo = 0
           WHERE p.IDPaziente=?`,
-      [oggi,rows[0].IDSetting, IDPaziente]
+      [oggi,oggi,rows[0].IDSetting, IDPaziente]
     );
 
     // 2) Aggiorno il posto letto SOLO se l'update paziente ha avuto effetto
@@ -404,7 +408,6 @@ router.get('/pazientiDimessi/:giorni/:IDUtente', async (req, res) => {
   const giorni = req.params.giorni;
   const IDUtente = req.params.IDUtente;
   try {
-
     const [rows] = await pool.query(
       `SELECT 
     CASE 
@@ -415,8 +418,8 @@ router.get('/pazientiDimessi/:giorni/:IDUtente', async (req, res) => {
     FROM paziente p
     JOIN  postiletto ps ON p.IDPostoLetto = ps.IDPostoLetto
     join utenti_setting us ON us.IDSetting= ps.IDSetting
-    WHERE p.dataDimissione IS NOT NULL
-      AND p.dataDimissione >= NOW() - INTERVAL ? DAY
+    WHERE p.dataTrasf IS NOT NULL
+      AND p.dataTrasf >= NOW() - INTERVAL ? DAY
       AND us.IDUtente=?
     GROUP BY p.sesso;
 `,[giorni, IDUtente]);
@@ -443,7 +446,7 @@ router.get('/pazientiDimessiPerSetting/:IDUtente/:livelloAccesso',async (req,res
     pl.IDPostoLetto,
     s1.setting AS settingDestinazione,
     DATE_FORMAT(p.dataNascita, '%d/%m/%Y') AS dataNascita,
-    DATE_FORMAT(p.dataDimissione, '%H:%i') AS ora
+    DATE_FORMAT(p.dataTrasf, '%H:%i') AS ora
 FROM paziente p
 INNER JOIN postiletto pl 
     ON pl.IDPostoLetto = p.IDPostoLetto
@@ -456,7 +459,7 @@ INNER JOIN utenti u
 INNER JOIN setting s1 
     ON p.IDSettingDestinazione = s1.IDSetting
 WHERE u.IDUtente = ?
-  AND DATE(p.dataDimissione) = CURDATE();`;
+  AND DATE(p.dataTrasf) = CURDATE();`;
     params=[IDUtente];
     break;
   case (livelloAcesso >=50):
@@ -468,7 +471,7 @@ WHERE u.IDUtente = ?
     s1.setting AS settingDestinazione,
     CONCAT_WS(' ', u1.cognome, u1.nome) AS "BED MANAGER",
     DATE_FORMAT(p.dataNascita, '%d/%m/%Y') AS dataNascita,
-    DATE_FORMAT(p.dataDimissione, '%H:%i') AS ora
+    DATE_FORMAT(p.dataTrasf, '%H:%i') AS ora
 FROM paziente p
 INNER JOIN postiletto pl 
     ON pl.IDPostoLetto = p.IDPostoLetto
@@ -478,7 +481,7 @@ INNER JOIN setting s1
     ON p.IDSettingDestinazione = s1.IDSetting
 INNER JOIN utenti u1 
     ON u1.IDUtente = p.IDUtenteTrasf
-WHERE DATE(p.dataDimissione) = CURDATE();
+WHERE DATE(p.dataTrasf) = CURDATE();
 `
     params=[];
   break;
@@ -513,9 +516,9 @@ router.get('/getPazienti',async (req,res)=>{
         LEFT JOIN postiLetto l ON l.IDPostoLetto = p.IDPostoLetto
         INNER JOIN setting s ON s.IDSetting = l.IDSetting
         WHERE (
-        p.dataDimissione IS NULL
-        OR p.dataDimissione = 0
-        OR p.dataDimissione = '0000-00-00'
+        p.dataTrasf IS NULL
+        OR p.dataTrasf = 0
+        OR p.dataTrasf = '0000-00-00'
       )
         ORDER BY s.ordine, p.cognomePaziente, p.nomePaziente `;
     const [rows]= await pool.query(sql,[]);
@@ -634,7 +637,7 @@ router.get("/getIDPostolettoProv/:IDPazienteProv",async(req,res)=>{
    }
 
 })
-
+//territorio/aggiornaDataTrasf/349/94/5/108/5 
 router.get('/aggiornaDataTrasf/:IDPaziente/:IDPostoLettoDestinazione/:IDUtente/:IDPostoLetto/:IDSettingDestinazione', async (req, res) => {
   
   const IDPostoLetto = req.params.IDPostoLetto;
@@ -685,7 +688,7 @@ router.get('/aggiornaDataTrasf/:IDPaziente/:IDPostoLettoDestinazione/:IDUtente/:
                 paziente.dataNascita,
                 paziente.sesso,
                 null,
-                oggi,
+                null,
                 paziente.problemiAperti,
                 IDUtente
             ]
@@ -756,7 +759,7 @@ router.get('/annullaTasferimento/:IDPostoLetto/:IDPaziente/:IDUtente/:IDPaziente
   const IDUtente = req.params.IDUtente;
   const IDPazienteProv = req.params.IDPazienteProv;
 
-  console.log("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",IDPaziente);
+ 
   // cancello la tupla del paziente appena trasferito 
   const [IDPostolettoSetting]=await pool.query("SELECT p.IDPostoLetto from paziente p WHERE p.IDPaziente=?", [IDPaziente]);
 

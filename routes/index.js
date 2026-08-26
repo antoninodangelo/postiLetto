@@ -353,8 +353,8 @@ router.get('/pazientiDimessi/:giorni/:IDUtente', async (req, res) => {
     FROM paziente p
     JOIN  postiletto ps ON p.IDPostoLetto = ps.IDPostoLetto
     join utenti_setting us ON us.IDSetting= ps.IDSetting
-    WHERE p.dataTrasf IS NOT NULL
-      AND p.dataTrasf >= NOW() - INTERVAL ? DAY
+    WHERE p.dataDimissione IS NOT NULL
+      AND p.dataDimissione >= NOW() - INTERVAL ? DAY
       AND us.IDUtente=?
     GROUP BY p.sesso;
 `,[giorni, IDUtente]);

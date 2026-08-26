@@ -6,7 +6,7 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
     container.innerHTML = "";
 
     // --- FETCH DATI ---
-    const res = await fetch(`/pazientiDimessiPerSetting/${IDUtente}/${livelloAccesso}`);
+    const res = await fetch(`/territorio/pazientiDimessiPerSetting/${IDUtente}/${livelloAccesso}`);
     if (!res.ok) {
         console.error("Errore nel recupero dei pazienti dimessi");
         return;

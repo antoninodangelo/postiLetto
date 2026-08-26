@@ -991,6 +991,7 @@ function creaReparto(nome, IDSetting, livelloAccesso) {
                 
                 let aPaziente = `<g onclick="assegnaPaziente(event, ${letto.IDPostoLetto}, ${letto.IDStatoLetto})">`;
                 if (letto.IDPaziente !== null) {
+                    console.log("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", letto.IDPaziente)
                     //lettoElement.style.setProperty("--bg-letto-dinamico", "#ff4fa3");
                     pzDimesso = letto.nomePaziente.substring(0, 1) + " " + letto.cognomePaziente.substring(0, 1);
                 }else{   

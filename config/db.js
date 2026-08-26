@@ -13,7 +13,10 @@ export const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 3,
   queueLimit: 0,
-  multipleStatements: true
+  multipleStatements: true,
+   ssl: {
+    rejectUnauthorized: false // Consente l'uso del certificato self-signed di Aiven
+  }
 });
 
 // Test connessione (opzionale ma utile)
