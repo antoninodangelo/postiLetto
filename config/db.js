@@ -16,9 +16,9 @@ export const pool = mysql.createPool({
   connectionLimit: 3,
   queueLimit: 0,
   multipleStatements: true,
-  /*  ssl: {
+   ssl: {
      ssl: useSSL ? { rejectUnauthorized: false } : false
-  } */
+  } 
 });
 
 // Test connessione (opzionale ma utile)
