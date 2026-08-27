@@ -5,10 +5,11 @@ import dotenv from "dotenv";
 
 dotenv.config(); // Carica le variabili dal .env
 
-const useSSL = process.env.NODE_ENV === "production" || process.env.NODE_ENV === "product";
+//const useSSL = process.env.NODE_ENV === "production" || process.env.NODE_ENV === "product";
 
 export const pool = mysql.createPool({
   host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 13241,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
@@ -16,8 +17,8 @@ export const pool = mysql.createPool({
   connectionLimit: 3,
   queueLimit: 0,
   multipleStatements: true,
-  // CORREZIONE: ssl accetta direttamente l'oggetto o undefined/false, senza annidamenti
-  ssl: useSSL ? { rejectUnauthorized: false } : undefined
+  // Legge la stringa dal file .env o da Render
+  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : undefined
 });
 
 // Test connessione (opzionale ma utile)
