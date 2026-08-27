@@ -1,4 +1,5 @@
-import 'dotenv/config'; // <-- CORREZIONE: Questo carica dotenv ISTANTANEAMENTE prima di tutto il resto
+import dotenv from "dotenv";
+
 import mysql from "mysql2/promise";
 
 // Debug temporaneo per verificare cosa vede effettivamente Node.js
@@ -7,7 +8,6 @@ console.log("HOST LETTO:", process.env.DB_HOST);
 console.log("PORTA LETTA:", process.env.DB_PORT);
 console.log("SSL ATTIVO?:", process.env.DB_SSL);
 console.log("-----------------------");
-
 
 dotenv.config(); // Carica le variabili dal .env
 
