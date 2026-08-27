@@ -460,25 +460,21 @@ WHERE u.IDUtente = ?
     params=[IDUtente];
     break;
   case (livelloAcesso >=50):
-    sql = `SELECT 
-    s.setting,
-    p.*,
-    pl.numeroLetto,
+    sql = `SELECT
+	s.setting AS settingDestinazione,   
+    p.*, 
+	 pl.numeroLetto,
     pl.IDPostoLetto,
-    s1.setting AS settingDestinazione,
-    CONCAT_WS(' ', u1.cognome, u1.nome) AS "BED MANAGER",
+    s.setting AS settingDestinazione,
+	CONCAT_WS(' ', u1.cognome, u1.nome) AS "BED MANAGER",
     DATE_FORMAT(p.dataNascita, '%d/%m/%Y') AS dataNascita,
     DATE_FORMAT(p.dataDimissione, '%H:%i') AS ora
 FROM paziente p
-INNER JOIN postiletto pl 
-    ON pl.IDPostoLetto = p.IDPostoLetto
-INNER JOIN setting s 
-    ON s.IDSetting = pl.IDSetting
-INNER JOIN setting s1 
-    ON p.IDSettingDestinazione = s1.IDSetting
-INNER JOIN utenti u1 
-    ON u1.IDUtente = p.IDUtenteTrasf
-WHERE DATE(p.dataDimissione) = CURDATE();
+JOIN postiletto pl ON pl.IDPostoLetto= p.IDPostoLetto
+join setting s ON s.IDSetting = pl.IDSetting
+INNER JOIN utenti u1  ON u1.IDUtente = p.IDUtenteTrasf
+WHERE p.attivo =1
+
 `
     params=[];
   break;
@@ -774,13 +770,12 @@ router.get('/annullaTasferimento/:IDPostoLetto/:IDPaziente/:IDUtente/:IDPaziente
                     WHERE p.IDPostoLetto= ?`;
  
   try {
-    const [result_delete] = await pool.execute(sql_delete, [IDPaziente]);
+    
     const [result] = await pool.execute(sql, ["", null, "", IDPazienteProv]);
     const [result_letto_bording] = await pool.execute("SELECT p.IDPostoLetto from paziente p WHERE p.IDPaziente=?", [IDPazienteProv]);
-    
     await pool.execute(sql_update_letto_Boarding, [result_letto_bording[0].IDPostoLetto]);    
     await pool.execute(sql_letto_setting, [IDPostolettoSetting[0].IDPostoLetto]);
-    
+    const [result_delete] = await pool.execute(sql_delete, [IDPaziente]);
     if (result) {
       res.json(result);
       return;

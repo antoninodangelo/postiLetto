@@ -287,7 +287,7 @@ function generaTabellaLettiOccupati(idDivAggancio, livelloAccesso) {
 }
 function generaTabellaPazientiDimessi(giorni, IDUtente, livelloAccesso) {
     document.getElementById('tabellaRisultati').innerHTML = ""; // pulizia
-    fetch(`/pazientiDimessi/${giorni}/${IDUtente}`)
+    fetch(`/pazientiDimessi/${giorni}/${IDUtente}/${livelloAccesso}`)
         .then(res => res.json())
         .then(dati => {
             creaTabellaQuery(

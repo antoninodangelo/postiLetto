@@ -339,12 +339,27 @@ router.get('/numeroLettiChiusi/:IDUtente/:livelloAccesso', async (req, res) => {
     res.status(500).json({ error: "Errore nel ricecere id dati posti chiusi" });
   }
 });
-router.get('/pazientiDimessi/:giorni/:IDUtente', async (req, res) => {
+router.get('/pazientiDimessi/:giorni/:IDUtente/:livelloAccesso', async (req, res) => {
   const giorni = req.params.giorni;
   const IDUtente = req.params.IDUtente;
+  const livelloAccesso =req.params.livelloAccesso;
+  let sql;
   try {
-    const [rows] = await pool.query(
-      `SELECT 
+    if(livelloAccesso>=50){
+      sql =`SELECT 
+    CASE 
+        WHEN p.sesso = 1 THEN 'Donne'
+        WHEN p.sesso = 2 THEN 'Uomini'
+    END AS sesso,
+    COUNT(*) AS totale
+    FROM paziente p
+    JOIN  postiletto ps ON p.IDPostoLetto = ps.IDPostoLetto
+    join utenti_setting us ON us.IDSetting= ps.IDSetting
+    WHERE p.dataDimissione IS NOT NULL
+      AND p.dataDimissione >= NOW() - INTERVAL ? DAY
+    GROUP BY p.sesso;`
+    }else{
+      sql =`SELECT 
     CASE 
         WHEN p.sesso = 1 THEN 'Donne'
         WHEN p.sesso = 2 THEN 'Uomini'
@@ -357,7 +372,9 @@ router.get('/pazientiDimessi/:giorni/:IDUtente', async (req, res) => {
       AND p.dataDimissione >= NOW() - INTERVAL ? DAY
       AND us.IDUtente=?
     GROUP BY p.sesso;
-`,[giorni, IDUtente]);
+`
+    }
+    const [rows] = await pool.query(sql,[giorni, IDUtente]);
 
     res.json(rows);
   } catch (err) {
