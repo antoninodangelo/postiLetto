@@ -31,11 +31,16 @@ router.get('/numeroLettiLiberi/:IDUtente/:livelloAccesso', async (req, res) => {
     let rows=[];
     if(livelloAccesso >=50 ){
       [rows] = await pool.query(
-      `SELECT COUNT(*) AS 'LETTI LIBERI' , s.setting AS 'SETTING' FROM postiletto p 
-          JOIN setting s ON s.IDSetting =p.IDSetting
-			 JOIN zone z ON z.IDZona=s.IDZona      
-          WHERE p.IDStatoLetto=14 AND s.setting NOT LIKE ("BORDING%") AND s.ospedaliero=0
-          GROUP BY p.IDSetting`,
+      `SELECT 
+    COUNT(*) AS 'LETTI LIBERI', 
+    s.setting AS 'SETTING' 
+FROM postiletto p 
+JOIN setting s ON s.IDSetting = p.IDSetting
+JOIN zone z ON z.IDZona = s.IDZona      
+WHERE p.IDStatoLetto = 14 
+  AND LOWER(s.setting) NOT LIKE 'boarding%' 
+  AND s.ospedaliero = 0
+GROUP BY s.setting;`,
       []
     );
   }else{
@@ -45,7 +50,7 @@ router.get('/numeroLettiLiberi/:IDUtente/:livelloAccesso', async (req, res) => {
 			 JOIN zone z ON z.IDZona=s.IDZona  
 			 JOIN utenti_setting us ON us.IDSetting = s.IDSetting
           JOIN utenti u ON u.IDUtente = us.IDUtente    
-          WHERE p.IDStatoLetto=14 AND s.setting NOT LIKE ("BORDING%") AND s.ospedaliero=0 AND u.IDUtente=?
+          WHERE p.IDStatoLetto=14 AND LOWER(s.setting) NOT LIKE 'boarding%'  AND s.ospedaliero=0 AND u.IDUtente=?
           GROUP BY p.IDSetting`,
         [IDUtente]
       );
@@ -144,7 +149,7 @@ router.get("/pazientiPerSetting/:IDSetting", async(req, res) => {
             l.IDPostoLetto,
             s.setting
         FROM paziente p        
-        LEFT JOIN postiLetto l ON l.IDPostoLetto = p.IDPostoLetto
+        LEFT JOIN postiletto l ON l.IDPostoLetto = p.IDPostoLetto
         INNER JOIN setting s ON s.IDSetting = l.IDSetting
         WHERE l.IDSetting = ?
           AND p.dataDimissione IS NULL and p.attivo =1
@@ -258,7 +263,7 @@ router.get('/letti/:ID', async (req, res) => {
     paziente.IDPaziente, paziente.nomePaziente, paziente.cognomePaziente,
     paziente.dataNascita, paziente.sesso, paziente.dataTrasf,
     paziente.IDSettingDestinazione,paziente.dataTrasf, paziente.dataDimissione
-FROM postiLetto p
+FROM postiletto p
 LEFT JOIN paziente  
     ON paziente.IDPostoLetto = p.IDPostoLetto
     AND paziente.attivo = 1
@@ -321,7 +326,7 @@ router.post('/salvaDatiPaziente/:livelloAccesso', async (req, res) => {
 });
 router.post('/salvaDatiLetto', async (req, res) => {
   const { IDPostoLetto, IDSetting, IDStatoLetto, IDTipoLetto, numeroStanza } = req.body;
-  const postiLetto = [IDSetting, IDStatoLetto, IDTipoLetto, numeroStanza, 1, IDPostoLetto];
+  const postiletto = [IDSetting, IDStatoLetto, IDTipoLetto, numeroStanza, 1, IDPostoLetto];
 
   try {
     const [rows] = await pool.query(`SELECT * FROM paziente
@@ -343,7 +348,7 @@ router.post('/salvaDatiLetto', async (req, res) => {
       `UPDATE postiletto 
        SET IDSetting=?, IDStatoLetto=?, IDTipoLetto=?, numeroStanza=?, attivo=? 
        WHERE IDPostoLetto=?`,
-      [...postiLetto]
+      [...postiletto]
     );
 
     res.json({
@@ -387,7 +392,7 @@ router.get('/dimettiPaziente/:IDPaziente/:IDPostoLetto/:livelloAccesso/:IDUtente
     // 2) Aggiorno il posto letto SOLO se l'update paziente ha avuto effetto
     if (infoPaziente.affectedRows > 0 ) {
       await pool.query(
-        `UPDATE postiLetto SET IDStatoLetto = 14 WHERE IDPostoLetto = ?`,
+        `UPDATE postiletto SET IDStatoLetto = 14 WHERE IDPostoLetto = ?`,
         [IDPostoLetto]
 )}
 

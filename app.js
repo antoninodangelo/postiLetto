@@ -6,7 +6,7 @@ import logger from 'morgan';
 import { fileURLToPath } from 'url';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from "passport-local";
-import { pool } from './config/db.js';
+import  pool  from './config/db.js';
 
 import bcrypt from "bcryptjs";
 import indexRouter from './routes/index.js';
@@ -54,7 +54,13 @@ passport.use(
         if (!validator.isEmail(mail)) {
           return done(null, false, { message: 'Incorrect mail' });
         }
-
+        // Dentro la rotta POST /log_in
+console.log("--- DEBUG CONNESSO DA ROUTE ---");
+console.log("Il pool è definito?", typeof pool !== 'undefined');
+if (pool && pool.pool && pool.pool.config) {
+  console.log("Host attualmente usato dal pool:", pool.pool.config.connectionConfig.host);
+}
+console.log("--------------------------------");
         // 2. Esegui la query (basta il try principale per catturare gli errori del DB)
         const [rows] = await pool.execute(sql, [mail]);
         const user = rows[0];

@@ -1,30 +1,24 @@
-import dotenv from "dotenv";
+
 
 import mysql from "mysql2/promise";
-
-// Debug temporaneo per verificare cosa vede effettivamente Node.js
-console.log("--- DEBUG PARAMETRI ---");
-console.log("HOST LETTO:", process.env.DB_HOST);
-console.log("PORTA LETTA:", process.env.DB_PORT);
-console.log("SSL ATTIVO?:", process.env.DB_SSL);
-console.log("-----------------------");
+import dotenv from "dotenv";
 
 dotenv.config(); // Carica le variabili dal .env
 
-//const useSSL = process.env.NODE_ENV === "production" || process.env.NODE_ENV === "product";
+const useSSL = process.env.NODE_ENV === "production" || process.env.NODE_ENV === "product";
 
 export const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 13241,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 3,
+  port:process.env.DBPORT,
   queueLimit: 0,
   multipleStatements: true,
-  // Legge la stringa dal file .env o da Render
-  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : undefined
+  // CORREZIONE: ssl accetta direttamente l'oggetto o undefined/false, senza annidamenti
+ ssl: useSSL ? { rejectUnauthorized: false } : undefined
 });
 
 // Test connessione (opzionale ma utile)

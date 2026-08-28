@@ -70,7 +70,7 @@ router.get("/pazientiPerSetting/:IDSetting", async(req, res) => {
             s.setting
         FROM paziente p
         
-        LEFT JOIN postiLetto l ON l.IDPostoLetto = p.IDPostoLetto
+        LEFT JOIN postiletto l ON l.IDPostoLetto = p.IDPostoLetto
         INNER JOIN setting s ON s.IDSetting = l.IDSetting
         WHERE l.IDSetting = ?
           AND p.dataTrasf IS NULL
@@ -123,7 +123,7 @@ router.get('/letti/:ID', async (req, res) => {
     paziente.IDPaziente, paziente.nomePaziente, paziente.cognomePaziente,
     paziente.dataNascita, paziente.sesso, paziente.dataTrasf,
     paziente.IDSettingDestinazione,paziente.dataTrasf
-FROM postiLetto p
+FROM postiletto p
 LEFT JOIN paziente  
     ON paziente.IDPostoLetto = p.IDPostoLetto
    AND (
@@ -182,7 +182,7 @@ router.post('/salvaDatiPaziente', async (req, res) => {
 });
 router.post('/salvaDatiLetto', async (req, res) => {
   const { IDPostoLetto, IDSetting, IDStatoLetto, IDTipoLetto, numeroStanza } = req.body;
-  const postiLetto = [IDSetting, IDStatoLetto, IDTipoLetto, numeroStanza, 1, IDPostoLetto];
+  const postiletto = [IDSetting, IDStatoLetto, IDTipoLetto, numeroStanza, 1, IDPostoLetto];
 
   try {
     const [rows] = await pool.query(`SELECT * FROM paziente
@@ -203,7 +203,7 @@ router.post('/salvaDatiLetto', async (req, res) => {
       `UPDATE postiletto 
        SET IDSetting=?, IDStatoLetto=?, IDTipoLetto=?, numeroStanza=?, attivo=? 
        WHERE IDPostoLetto=?`,
-      [...postiLetto]
+      [...postiletto]
     );
 
     res.json({
@@ -247,7 +247,7 @@ router.get('/eliminaPaziente/:IDPaziente/:IDPostoLetto/:livelloAccesso', async (
       );
     }else{
       await pool.query(
-        `UPDATE postiLetto SET IDStatoLetto = 14 WHERE IDPostoLetto = ?`,
+        `UPDATE postiletto SET IDStatoLetto = 14 WHERE IDPostoLetto = ?`,
         [IDPostoLetto]
 )}
 
