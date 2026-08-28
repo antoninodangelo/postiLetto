@@ -18,7 +18,9 @@ export const pool = mysql.createPool({
   queueLimit: 0,
   multipleStatements: true,
   // CORREZIONE: ssl accetta direttamente l'oggetto o undefined/false, senza annidamenti
- ssl: useSSL ? { rejectUnauthorized: false } : undefined
+ //ssl: useSSL ? { rejectUnauthorized: false } : undefined
+ ssl:{ rejectUnauthorized: false }
+
 });
 
 // Test connessione (opzionale ma utile)
