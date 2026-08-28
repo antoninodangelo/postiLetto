@@ -7,20 +7,19 @@ dotenv.config(); // Carica le variabili dal .env
 
 const useSSL = process.env.NODE_ENV === "production" || process.env.NODE_ENV === "product";
 
-export const pool = mysql.createPool({
+const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  port: process.env.DB_PORT || 13241,
   waitForConnections: true,
   connectionLimit: 3,
-  port:process.env.DBPORT,
   queueLimit: 0,
   multipleStatements: true,
-  // CORREZIONE: ssl accetta direttamente l'oggetto o undefined/false, senza annidamenti
- //ssl: useSSL ? { rejectUnauthorized: false } : undefined
- ssl:{ rejectUnauthorized: false }
-
+  ssl: { 
+    rejectUnauthorized: false // <-- Corretto per bypassare il controllo CA su database cloud
+  } 
 });
 
 // Test connessione (opzionale ma utile)
