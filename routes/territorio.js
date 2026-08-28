@@ -1,14 +1,9 @@
 import express from 'express';
 import path from 'path';
 import pool from '../config/db.js';
-import { isBefore, parseISO } from 'date-fns';
 import { format } from "date-fns";
-import { it, sq, zhCN } from "date-fns/locale";
 const oggi = format(new Date(), "yyyy-MM-dd HH:mm:ss");
-
 import { fileURLToPath } from 'url';
-import { quartersInYear } from 'date-fns/constants';
-import { query } from 'express';
 
 
 
@@ -202,13 +197,18 @@ router.get('/settingAppartenenza/:idZona', async (req, res) => {
   
   try {
     const [rows] = await pool.query(
-      `SELECT distinct s.IDSetting, z.zona, s.setting
-    FROM setting s
-    INNER JOIN utenti_setting us ON us.IDSetting = s.IDSetting
-    INNER JOIN utenti u ON u.IDUtente = us.IDUtente
-    INNER JOIN zone z ON z.IDZona = s.IDZona
-    WHERE s.ospedaliero =1 and z.IDZona =? 
-    order by z.IDZona desc` ,
+      `SELECT DISTINCT 
+    s.IDSetting, 
+    z.zona AS 'ZONA', 
+    s.setting AS 'SETTING', 
+    z.IDZona
+FROM setting s
+INNER JOIN utenti_setting us ON us.IDSetting = s.IDSetting
+INNER JOIN zone z ON z.IDZona = s.IDZona
+WHERE s.ospedaliero = 1 
+  AND z.IDZona = ?
+ORDER BY s.setting ASC; -- Ordinato alfabeticamente per setting, poiché IDZona è fisso a 1
+` ,
       [idZona]
     );
     res.json(rows);
@@ -262,18 +262,18 @@ router.get('/letti/:ID', async (req, res) => {
     p.IDSetting, p.IDPostoLetto, p.numeroLetto, p.IDStatoLetto, p.numeroStanza,
     paziente.IDPaziente, paziente.nomePaziente, paziente.cognomePaziente,
     paziente.dataNascita, paziente.sesso, paziente.dataTrasf,
-    paziente.IDSettingDestinazione,paziente.dataTrasf, paziente.dataDimissione
+    paziente.IDSettingDestinazione, paziente.dataDimissione
 FROM postiletto p
 LEFT JOIN paziente  
     ON paziente.IDPostoLetto = p.IDPostoLetto
     AND paziente.attivo = 1
-   AND (
-        paziente.dataDimissione IS NULL
-        OR paziente.dataDimissione = 0
-        OR paziente.dataDimissione = '0000-00-00'
-      )
-WHERE p.IDSetting = ? and p.attivo=1
-ORDER BY p.numeroStanza, p.numeroLetto
+    AND (
+        paziente.dataDimissione IS NULL 
+        OR CAST(paziente.dataDimissione AS CHAR) = '0000-00-00'
+        OR YEAR(paziente.dataDimissione) = 0
+    )
+WHERE p.IDSetting = 5 AND p.attivo = 1
+ORDER BY p.numeroStanza, p.numeroLetto;
 `,
       [IDSetting]
     );
@@ -298,7 +298,7 @@ router.post('/salvaDatiPaziente/:livelloAccesso', async (req, res) => {
                               WHERE paziente.IDPostoLetto= ? AND (
         paziente.dataTrasf IS NULL
         OR paziente.dataTrasf = 0
-        OR paziente.dataTrasf = '0000-00-00'    
+         OR CAST(paziente.dataTrasf AS CHAR) = '0000-00-00'   
       );`, [IDPostoLetto]);
     
     if(rowsPzPresente.length >0){
@@ -333,7 +333,8 @@ router.post('/salvaDatiLetto', async (req, res) => {
                               WHERE paziente.IDPostoLetto= ? AND (
         paziente.dataDimissione IS NULL
         OR paziente.dataDimissione = 0
-        OR paziente.dataDimissione = '0000-00-00'
+        OR CAST(paziente.dataDimissione AS CHAR) = '0000-00-00' 
+        
       );`, [IDPostoLetto]);
       
    
@@ -563,12 +564,19 @@ router.get('/getSettingDestinazione', async (req, res) => {
   let newRows = [];
   try {
        const [rows] = await pool.query(
-      `SELECT COUNT(s.IDSetting), z.zona,s.* FROM zone 
-        INNER JOIN setting s ON s.IDZona= zone.IDZona
-        INNER JOIN postiletto pl ON pl.IDSetting= s.IDSetting
-        INNER JOIN zone z ON z.IDZona = s.IDZona
-        WHERE s.ospedaliero =0 and pl.IDStatoLetto=14 AND s.setting NOT LIKE ("BORDING%")
-        GROUP BY s.IDZona,s.setting, pl.IDStatoLetto`,[]
+      `SELECT 
+    COUNT(pl.IDPostoLetto) AS 'LETTI_LIBERI', 
+    z.zona AS 'ZONA',
+    s.IDSetting,
+    s.setting AS 'SETTING'
+FROM zone z
+INNER JOIN setting s ON s.IDZona = z.IDZona
+INNER JOIN postiletto pl ON pl.IDSetting = s.IDSetting
+WHERE s.ospedaliero = 0 
+  AND pl.IDStatoLetto = 14 
+  AND LOWER(s.setting) NOT LIKE 'boarding%' -- Corretto anche il potenziale refuso 'BORDING'
+GROUP BY z.IDZona, z.zona, s.IDSetting, s.setting;
+`,[]
     );
     if(rows.length !== 0){
         newRows = rows.map(row => ({
