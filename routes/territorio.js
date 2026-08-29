@@ -194,7 +194,7 @@ router.get('/setting/:ID', async (req, res) => {
 
 router.get('/settingAppartenenza/:idZona', async (req, res) => {
   const idZona = req.params.idZona;
-  
+  console.log("ffffffffffffffffffff",idZona);
   try {
     const [rows] = await pool.query(
       `SELECT DISTINCT 
@@ -207,7 +207,7 @@ INNER JOIN utenti_setting us ON us.IDSetting = s.IDSetting
 INNER JOIN zone z ON z.IDZona = s.IDZona
 WHERE s.ospedaliero = 1 
   AND z.IDZona = ?
-ORDER BY s.setting ASC; -- Ordinato alfabeticamente per setting, poiché IDZona è fisso a 1
+ORDER BY s.setting ASC; 
 ` ,
       [idZona]
     );
