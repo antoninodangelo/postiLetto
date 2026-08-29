@@ -17,9 +17,9 @@ const pool = mysql.createPool({
   connectionLimit: 3,
   queueLimit: 0,
   multipleStatements: true,
-/* ssl: { 
+ssl: { 
     rejectUnauthorized: false // <-- Corretto per bypassare il controllo CA su database cloud
-  }  */ 
+  }  
 });
 
 // Test connessione (opzionale ma utile)
