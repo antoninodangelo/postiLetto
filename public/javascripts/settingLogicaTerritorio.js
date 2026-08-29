@@ -799,6 +799,7 @@ async function caricaSettingAppartenenza(idZona=0) {
         const response = await fetch(`/territorio/settingAppartenenza/${idZona}`);
         const setting = await response.json();
         if(setting.length !==0){
+            console.log(setting);
            configurazioneFormPz.find(el => el.id === 'settingApp').options = setting.map(s => s.setting);
             configurazioneFormPz.find(el => el.id === 'settingApp').values = setting.map(s => s.IDSetting);
            
@@ -1259,13 +1260,15 @@ function chiudiModal(idModale) {
     }, 300); // Attende la fine dell'animazione CSS di chiusura
 }
 document.addEventListener('change',async(e)=>{
+    try {
+    const settingAzienda = await fetch(`/territorio/settingAppartenenza/${e.target.value}`);
+    if (!settingAzienda.ok) throw new Error('Errore nella risposta del server');
     
+    const dati = await settingAzienda.json();
     if(e.target.id ==='zona'){        
-        const settingAzienda = await fetch(`/territorio/settingAppartenenza/${e.target.value}`);
-        const dati = await settingAzienda.json();
+        
         configurazioneFormPz.find(el => el.id === 'settingApp').options =
             dati.map(s => s.setting);
-
         configurazioneFormPz.find(el => el.id === 'settingApp').values =
             dati.map(s => s.IDSetting);
         creaSelect('settingApp');
@@ -1274,7 +1277,9 @@ document.addEventListener('change',async(e)=>{
         datiformPz.IDSetting = e.target.value;
        
     }
-
+    } catch (error) {
+        console.error("Errore durante la fetch:", error);
+    }
 })
 function creaSelect(gancio){
     const campo = configurazioneFormPz.find(el => el.id === gancio);

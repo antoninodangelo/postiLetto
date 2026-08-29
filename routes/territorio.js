@@ -199,8 +199,8 @@ router.get('/settingAppartenenza/:idZona', async (req, res) => {
     const [rows] = await pool.query(
       `SELECT DISTINCT 
     s.IDSetting, 
-    z.zona AS 'ZONA', 
-    s.setting AS 'SETTING', 
+    z.zona AS 'zona', 
+    s.setting AS 'setting', 
     z.IDZona
 FROM setting s
 INNER JOIN utenti_setting us ON us.IDSetting = s.IDSetting
@@ -211,6 +211,7 @@ ORDER BY s.setting ASC;
 ` ,
       [idZona]
     );
+    console.log(rows);
     res.json(rows);
   } catch (err) {
     console.error('Errore query:', err);
