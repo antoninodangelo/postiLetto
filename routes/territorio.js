@@ -775,16 +775,21 @@ router.get('/annullaTasferimento/:IDPostoLetto/:IDPaziente/:IDUtente/:IDPaziente
 
   //e aggiorno il paziente precedente con la data di trasferimento a null e attivo a 1
 
-  const sql = `UPDATE paziente p SET p.dataTrasf=?, p.IDSettingDestinazione=?, p.IDUtenteTrasf=?, p.attivo=1, p.dataTrasf=null WHERE IDPaziente = ? `;
+  const sql = `UPDATE paziente p SET p.IDSettingDestinazione=?, p.IDUtenteTrasf=?, p.attivo=1, p.dataTrasf=? WHERE IDPaziente = ? `;
   const sql_update_letto_Boarding =`UPDATE postiletto p SET p.IDStatoLetto= 16
                     WHERE p.IDPostoLetto= ?`;
  
    const sql_letto_setting =`UPDATE postiletto p SET p.IDStatoLetto= 14
                     WHERE p.IDPostoLetto= ?`;
  
-  try {
+  try {const [result] = await pool.execute(sql, [
+  null,          // Corrisponde a IDSettingDestinazione
+  null,          // Corrisponde a IDUtenteTrasf
+  null,          // Corrisponde a dataTrasf (NON usare la stringa vuota "")
+  IDPazienteProv // Corrisponde a IDPaziente nel WHERE
+]);
     
-    const [result] = await pool.execute(sql, ["", null, "", IDPazienteProv]);
+    
     const [result_letto_bording] = await pool.execute("SELECT p.IDPostoLetto from paziente p WHERE p.IDPaziente=?", [IDPazienteProv]);
     await pool.execute(sql_update_letto_Boarding, [result_letto_bording[0].IDPostoLetto]);    
     await pool.execute(sql_letto_setting, [IDPostolettoSetting[0].IDPostoLetto]);
