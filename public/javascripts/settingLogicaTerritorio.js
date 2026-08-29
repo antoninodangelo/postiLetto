@@ -230,7 +230,8 @@ async function caricaDati() {
    
     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
-    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi);
+    console.log("settingUtente=>",settingUtente);
+    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,caricaSetting,generaTabellaPazienti,settingUtente);
 
    // tabellaRicoverati('tabellaRicoverati',livelloAccesso);
     caricaSettingAppartenenza();

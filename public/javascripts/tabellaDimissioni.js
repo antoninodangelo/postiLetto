@@ -1,6 +1,5 @@
-async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, generaTabellaPazienti, settingUtente) {
-
-    const container = document.getElementById(containerId);
+async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, generaTabellaPazienti, settingUtente) {
+    const container = document.getElementById(containerId)    
     if (!container) return;
 
     container.innerHTML = "";
@@ -116,12 +115,13 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
 
                 // 2) Annulla trasferimento
                 await fetch(`/territorio/annullaTasferimento/${lettoProv}/${p.IDPaziente}/${IDUtente}/${p.IDPazienteProv}`);
-
+                await caricaSetting(IDUtente, livelloAccesso);
                 // 3) Refresh tabelle
                 document.getElementById("tabellaTrasf").innerHTML = "";
                 generaTabellaPostiLiberi(IDUtente, "tabellaTrasf", livelloAccesso);
-                generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);               
-                tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, generaTabellaPazienti, settingUtente);
+                generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);   
+                           
+                tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, generaTabellaPazienti, settingUtente);
             });
 
             tdBtn.appendChild(b_annulla_trasf);

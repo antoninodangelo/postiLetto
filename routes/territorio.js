@@ -194,12 +194,12 @@ router.get('/setting/:ID', async (req, res) => {
 
 router.get('/settingAppartenenza/:idZona', async (req, res) => {
   const idZona = req.params.idZona;
-  console.log("ffffffffffffffffffff",idZona);
+ 
   try {
     const [rows] = await pool.query(
       `SELECT DISTINCT 
     s.IDSetting, 
-    z.zona AS 'zona', 
+    z.zona AS 'ZONA', 
     s.setting AS 'setting', 
     z.IDZona
 FROM setting s
@@ -211,7 +211,6 @@ ORDER BY s.setting ASC;
 ` ,
       [idZona]
     );
-    console.log(rows);
     res.json(rows);
   } catch (err) {
     console.error('Errore query:', err);
@@ -273,7 +272,7 @@ LEFT JOIN paziente
         OR CAST(paziente.dataDimissione AS CHAR) = '0000-00-00'
         OR YEAR(paziente.dataDimissione) = 0
     )
-WHERE p.IDSetting = 5 AND p.attivo = 1
+WHERE p.IDSetting = ? AND p.attivo = 1
 ORDER BY p.numeroStanza, p.numeroLetto;
 `,
       [IDSetting]
@@ -567,15 +566,15 @@ router.get('/getSettingDestinazione', async (req, res) => {
        const [rows] = await pool.query(
       `SELECT 
     COUNT(pl.IDPostoLetto) AS 'LETTI_LIBERI', 
-    z.zona AS 'ZONA',
+    z.zona AS 'zona',
     s.IDSetting,
-    s.setting AS 'SETTING'
+    s.setting AS 'setting'
 FROM zone z
 INNER JOIN setting s ON s.IDZona = z.IDZona
 INNER JOIN postiletto pl ON pl.IDSetting = s.IDSetting
 WHERE s.ospedaliero = 0 
   AND pl.IDStatoLetto = 14 
-  AND LOWER(s.setting) NOT LIKE 'boarding%' -- Corretto anche il potenziale refuso 'BORDING'
+  AND LOWER(s.setting) NOT LIKE 'boarding%' 
 GROUP BY z.IDZona, z.zona, s.IDSetting, s.setting;
 `,[]
     );
