@@ -389,6 +389,45 @@ router.get('/getStatoPazienti', async (req, res) => {
     res.status(500).json({ error: 'Errore in estrarre gli stati del paziente' });
   }
 })
+router.post('/salvaDatiPaziente/:livelloAccesso', async (req, res) => {
+  const livelloAccesso = req.params.livelloAccesso;
+  
+  
+  const { IDPostoLetto, nomePaziente,cognomePaziente, dataNascita, sesso, settingDestinazione, dataTrasf,problemiAperti, settingApp } = req.body;
+  const nuovoPaziente = [IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso, null, settingDestinazione, problemiAperti, settingApp];
+  try {
+    
+    // prima di fare l'inserimento devo controllare nella tabella pazienti che non siano presenti pazienti in quel letto senza data di trasf.
+    const [rowsPzPresente] = await pool.query(`SELECT * FROM paziente
+                              WHERE paziente.IDPostoLetto= ? AND (
+        paziente.dataTrasf IS NULL
+        OR paziente.dataTrasf = 0
+         
+      );`, [IDPostoLetto]);
+    
+    if(rowsPzPresente.length >0){
+      const [rows]= await pool.query('UPDATE paziente set dataDimissione=? where IDPostoLetto = ? and IDPaziente = ?',[oggi,IDPostoLetto,rowsPzPresente[0].IDPaziente])
+      const [info]= await pool.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto])
+    }
+    
+    // SE abbiamo rowsPzPresente devo inserire la data di trasf. nella tupla troavata e eseguire l'inserimeto
+
+    const [info] = await pool.query(`INSERT INTO paziente (IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso,dataDimissione,IDSettingDestinazione,problemiAperti,IDProvenienza)
+      VALUES (?,?, ?,?,?,?,?,?,?)`, nuovoPaziente);
+    if(info){
+      const [info1]= await pool.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto]);
+    }
+    
+    res.json({
+      message: 'Dati aggiornati con successo',
+      updated: info.affectedRows
+    });
+  } catch (err) {
+    console.error('Errore query:', err);
+    res.status(500).json({ error: 'Errore server' });
+  }
+
+});
 router.get('/dimettiPaziente/:IDPaziente/:IDPostoLetto/:livelloAccesso/:IDUtente', async (req, res) => {
   try {
     const { IDPaziente, IDPostoLetto,livelloAccesso,IDUtente } = req.params;
