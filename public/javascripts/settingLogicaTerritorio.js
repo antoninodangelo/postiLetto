@@ -471,180 +471,120 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
 
     const container = document.getElementById(idDivAggancio);
     if (!container) return console.error("Div non trovata:", idDivAggancio);
-    container.innerHTML = ""; // pulizia
+    container.innerHTML = ""; 
 
     for (const settingID of settings) {
 
-        let pazienti = null;
-       
-
         const response = await fetch(`/territorio/pazientiPerSetting/${settingID}`);
-        pazienti = await response.json();
-    
+        const pazienti = await response.json();
+
         const responseSetting = await fetch(`/territorio/getSettingDestinazione`);
         const settingData = await responseSetting.json();
-
-        const lettiLiberiSetting = await fetch(`/territorio/lettiLiberiSetting/${settingID}`);
-
 
         if (pazienti.length === 0) continue;
 
         const nomeSetting = pazienti[0].setting;
-
         const mostraDestinazione = livelloAccesso >= 50;
 
+        // WRAPPER RESPONSIVE
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-responsive";
+
         const table = document.createElement("table");
-        table.className = "table table-striped table-bordered table-hover mb-4";
+        table.className = "table table-striped table-bordered table-hover mb-4 align-middle table-compact";
+
         let colSetting = "";
         let colAzioneTrasf = '<th>dimetti</th>';
-        (livelloAccesso >= 50) ? colSetting = `<th>setting</th>` : colSetting;
-        (livelloAccesso >= 50) ? colAzioneTrasf = `<th>trasferisci</th>` : colAzioneTrasf;
+        if (livelloAccesso >= 50) colSetting = `<th>setting</th>`;
+        if (livelloAccesso >= 50) colAzioneTrasf = `<th>trasferisci</th>`;
+
         table.innerHTML = `
-    <thead class="table table-primary">
-        <tr>
-            <th colspan="${mostraDestinazione ? 9 : 6}" class="text-center">${nomeSetting}</th>
-        </tr>
-        <tr>
-            ${colSetting}
-            <th>Nome</th>
-            <th>Cognome</th>
-            <th>Data Nascita</th>
-            <th>Letto</th>
-            ${mostraDestinazione ? "<th>Setting destinazione</th><th>Letti Liberi</th>" : ""}
-            <th style="width:120px">Azioni</th>
-            ${colAzioneTrasf}
-        </tr>
-    </thead>
-    <tbody></tbody>
-`;
+            <thead class="table-primary">
+                <tr>
+                    <th colspan="${mostraDestinazione ? 9 : 6}" class="text-center">${nomeSetting}</th>
+                </tr>
+                <tr>
+                    ${colSetting}
+                    <th>Nome</th>
+                    <th>Cognome</th>
+                    <th>Data Nascita</th>
+                    <th>Letto</th>
+                    ${mostraDestinazione ? "<th>Setting destinazione</th><th>Letti Liberi</th>" : ""}
+                    <th style="width:120px">Azioni</th>
+                    ${colAzioneTrasf}
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
 
         const tbody = table.querySelector("tbody");
 
         pazienti.forEach(async p => {
 
-            let selectSetting = `<select id="selectSetting_${p.IDPaziente}" class="form-select">`;
+            let selectSetting = `<select id="selectSetting_${p.IDPaziente}" class="form-select form-select-sm">`;
             selectSetting += `<option value="0">Seleziona un valore...</option>`;
-
             settingData.forEach(s => {
-
                 selectSetting += `<option value="${s.valore}">${s.testo}</option>`;
-
             });
             selectSetting += `</select>`;
-            //let selectLettiLiberi = document.getElementById(`selectLettiLiberi_${p.IDPaziente}`);
-            let risLettiLiberi = await fetch(`/territorio/lettiLiberiSetting/${selectSetting.value}`);
-            
-            let lettiLiberi = await risLettiLiberi.json();
-            
-            let selectLettiLiberi = `<select id="selectLettiLiberi_${p.IDPaziente}" class="form-select">`;
+
+            let selectLettiLiberi = `<select id="selectLettiLiberi_${p.IDPaziente}" class="form-select form-select-sm">`;
             selectLettiLiberi += `<option value="0">Seleziona un valore...</option>`;
-        
             selectLettiLiberi += `</select>`;
-            document.addEventListener('change',async (e)=>{
-                if (e.target.id=== 'selectSetting_'+p.IDPaziente){
-                        
-                let IDSettingLettiLiberi= e.target.value;
-                const td= e.target.closest("td");
-                const nextTd = td.nextElementSibling;     // prendo la cella successiva
-               const select = nextTd.querySelector("select");             
-                
-                const risLettiLiberi = await fetch(`/territorio/lettiLiberiSetting/${IDSettingLettiLiberi}`)            
-                lettiLiberi = await risLettiLiberi.json();
-                select.innerHTML="";
-                let selectLettiLiberi = "";
-                selectLettiLiberi = `<select id="selectLettiLiberi_${p.IDPaziente}" class="form-select">`;
-                selectLettiLiberi += `<option value="0">Seleziona un valore...</option>`;
-                    selectLettiLiberi +=
-                        (lettiLiberi?.length > 0)
-                            ? lettiLiberi.map(s => `<option value="${s.IDPostoLetto}">${s.numeroLetto}</option>`).join("")
-                            : `<option value="" disabled>Nessun letto libero</option>`;
 
-               
-                selectLettiLiberi += `</select>`;
-                nextTd.innerHTML=selectLettiLiberi; 
+            document.addEventListener('change', async (e) => {
+                if (e.target.id === 'selectSetting_' + p.IDPaziente) {
+
+                    const IDSettingLettiLiberi = e.target.value;
+                    const td = e.target.closest("td");
+                    const nextTd = td.nextElementSibling;
+                    const select = nextTd.querySelector("select");
+
+                    const risLettiLiberi = await fetch(`/territorio/lettiLiberiSetting/${IDSettingLettiLiberi}`);
+                    const lettiLiberi = await risLettiLiberi.json();
+
+                    let html = `<option value="0">Seleziona un valore...</option>`;
+                    html += (lettiLiberi?.length > 0)
+                        ? lettiLiberi.map(s => `<option value="${s.IDPostoLetto}">${s.numeroLetto}</option>`).join("")
+                        : `<option value="" disabled>Nessun letto libero</option>`;
+
+                    select.innerHTML = html;
                 }
-                
-                
-            })
+            });
 
-
-           
             const tr = document.createElement("tr");
             tr.dataset.idPaziente = p.IDPaziente;
             tr.dataset.idPostoLetto = p.IDPostoLetto;
             tr.dataset.setting = p.setting;
-            let colSetting = "";
-            let colAzioneTrasf = '<td><button class="btn btn-primary btn-sm btn-dimetti">Dimetti Paziente</button></td>';
-            colSetting = (livelloAccesso >= 50)
-                ? `<td>${p.setting}</td>`
-                : "";
-            colAzioneTrasf = (livelloAccesso >= 50) ? `<td><button class="btn btn-primary btn-sm btn-trasferisci">TRASFERISCI PAZIENTE</button></td>` : colAzioneTrasf;
-            tr.innerHTML = ` 
-    ${colSetting}               
-    <td>${p.nomePaziente}</td>
-    <td>${p.cognomePaziente}</td>
-    <td>${p.dataNascita}</td>
-    <td>${p.numeroLetto}</td>
-    ${mostraDestinazione ? `<td>${selectSetting}</td>` : ""}
-    ${mostraDestinazione ? `<td>${selectLettiLiberi}</td>` : ""}
-    <td class="text-center">
-        <button class="btn btn-danger btn-sm btn-cancella">Cancella</button>
-    </td>
-    ${colAzioneTrasf}
-`;
-               tr.querySelector(".btn-cancella").addEventListener("click", async () => {               
-                await fetch(`/territorio/cancellaInserimento/${p.IDPaziente}/${p.IDPostoLetto}`)
-                document.getElementById('dashboardReparti').innerHTML = "";
-                await caricaSetting(IDUtente, livelloAccesso);
-                caricaStatoLetti();
-                generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
-                generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
-                generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
-                generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
-            });
-             if (tr.querySelector('.btn-dimetti')) {
 
-                 tr.querySelector(".btn-dimetti").addEventListener("click", async () => {
-                     await dimettiPaziente(p.IDPaziente, p.IDPostoLetto, livelloAccesso,IDUtente);
-                     document.getElementById('dashboardReparti').innerHTML = "";
-                     await caricaSetting(IDUtente, livelloAccesso);
-                     caricaStatoLetti();
-                     generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
-                     generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
-                     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
-                     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
-                 });
-             }
-            if (tr.querySelector('.btn-trasferisci')) {
-                tr.querySelector('.btn-trasferisci').addEventListener('click', async (e) => {
-                    if (document.getElementById(`selectSetting_${p.IDPaziente}`).value === "") {
-                        alert('DEVI SELEZIONARE UN SETTING....');
-                        return
-                    }else if(document.getElementById(`selectLettiLiberi_${p.IDPaziente}`).value === "" || document.getElementById(`selectLettiLiberi_${p.IDPaziente}`).value === "0"){
-                        alert('DEVI SELEZIONARE UN LETTO LIBERO....');
-                        return
-                    }
-                    const IDPostoLettoDestinazione = document.getElementById(`selectLettiLiberi_${p.IDPaziente}`).value;
-                    const IDSettingDestinazione = document.getElementById(`selectSetting_${p.IDPaziente}`).value;
-                    const response = await fetch(`/territorio/aggiornaDataTrasf/${p.IDPaziente}/${IDPostoLettoDestinazione}/${IDUtente}/${p.IDPostoLetto}/${IDSettingDestinazione}`);
-                    await caricaSetting(IDUtente, livelloAccesso);
-                    caricaStatoLetti();                   
-                    generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
-                    generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
-                    generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
-                    generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
-                    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,generaTabellaPazienti,settingUtente);
+            let colSettingTD = (livelloAccesso >= 50) ? `<td>${p.setting}</td>` : "";
+            let colAzioneTrasfTD = (livelloAccesso >= 50)
+                ? `<td><button class="btn btn-primary btn-sm w-100 btn-trasferisci">TRASFERISCI</button></td>`
+                : `<td><button class="btn btn-primary btn-sm w-100 btn-dimetti">Dimetti</button></td>`;
 
-                })
-            }
+            tr.innerHTML = `
+                ${colSettingTD}
+                <td>${p.nomePaziente}</td>
+                <td>${p.cognomePaziente}</td>
+                <td>${p.dataNascita}</td>
+                <td>${p.numeroLetto}</td>
+                ${mostraDestinazione ? `<td>${selectSetting}</td>` : ""}
+                ${mostraDestinazione ? `<td>${selectLettiLiberi}</td>` : ""}
+                <td class="text-center">
+                    <button class="btn btn-danger btn-sm w-100 btn-cancella">Cancella</button>
+                </td>
+                ${colAzioneTrasfTD}
+            `;
 
             tbody.appendChild(tr);
         });
 
-        container.appendChild(table);
-
+        wrapper.appendChild(table);
+        container.appendChild(wrapper);
     }
 }
+
+
 
 
 async function dimettiPaziente(IDPaziente, IDPostoLetto, livelloAccesso,IDUtente) {

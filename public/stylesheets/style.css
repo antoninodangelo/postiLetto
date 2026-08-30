@@ -114,3 +114,21 @@
 .pointer {
   cursor: pointer;
 }
+// css per tabella generaTabellaPazienti
+.table-compact td,
+.table-compact th {
+    padding: 4px 6px !important;   /* riduce altezza */
+    font-size: 0.80rem !important; /* testo più piccolo */
+    vertical-align: middle !important;
+}
+
+.table-compact select.form-select-sm {
+    padding: 2px 4px !important;
+    font-size: 0.75rem !important;
+    height: auto !important;
+}
+
+.table-compact .btn-sm {
+    padding: 2px 6px !important;
+    font-size: 0.75rem !important;
+}

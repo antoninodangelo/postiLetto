@@ -72,7 +72,10 @@ function creaMenuSx(
                     <li class="list-group-item pazientiGestiti voce-menuDx pointer">PAZIENTI GESTITI</li>
                     <li class="list-group-item dashboard voce-menuDx pointer">DASHBOARD</li>
                     <li class="list-group-item gestioneLettiChiusi voce-menuDx pointer">GESTIONE CHIUSURA LETTI</li>
-                    <li class="list-group-item lettiLiberi voce-menuDx d-none pointer">VISTA PIANO ANNO CORRENTE</li>
+                    <li class="list-group-item estrazioni voce-menuDx  pointer">AREA ESTRAZIONI</li>
+                    <li class="list-group-item gestione voce-menuDx  pointer">AREA GESTIONE</li>
+                    <li class="list-group-item gestione_operatori voce-menuDx  display=none pointer">GESTIONE OPERATORI</li>
+
                 </ul>`;
             break;
             case 10:
