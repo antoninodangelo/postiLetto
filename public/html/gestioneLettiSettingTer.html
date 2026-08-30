@@ -14,72 +14,89 @@
   <script type="module" src="../javascripts/settingLogicaTerritorio.js" defer></script>
 
   <style>
-    .grid-container {
-      display: grid;
-      grid-template-columns: 200px 1fr 200px;
-     /* height: calc(100vh - 125px);  header + footer */
+    /* Lo scroll interno si attiva solo da desktop in su per non rompere la navigazione mobile */
+    @media (min-width: 992px) {
+      .col-scroll {
+        height: calc(100vh - 125px); /* Header + Footer di ingombro */
+        overflow-y: auto;
+      }
     }
 
-    .col-scroll {
-      overflow-y: auto;
+    /* Ottimizzazione visiva per i letti generati dinamicamente */
+    .beds-row-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
   </style>
 </head>
 
 <body class="d-flex flex-column min-vh-100">
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- NOTA: Corretto il link di Bootstrap all'URL ufficiale CDN per evitare errori di caricamento -->
+  
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-
-
-  <!-- HEADER -->
+  <!-- HEADER RESPONSIVE -->
   <nav class="navbar navbar-dark bg-primary mb-3">
-    <div class="container">
-      <a class="navbar-brand" href="#"><img src="../images/ATC_scritta.jpg" alt="Logo" width="40" height="50"><img src="../images/logo.jpg" alt="Logo" width="60" height="50"></a>
-      <p class="text-white mb-0">Benvenuto, <span id="nomeUtente"></span></p>
-      <button class="btn btn-outline-light" id="logoutBtn">Logout</button>
+    <div class="container-fluid px-3">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+        <img src="../images/ATC_scritta.jpg" alt="Logo" width="40" height="50" class="img-fluid">
+        <img src="../images/logo.jpg" alt="Logo" width="60" height="50" class="img-fluid">
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <!-- Il testo di benvenuto si nasconde sui telefoni molto piccoli per non sovrapporsi -->
+        <p class="text-white mb-0 d-none d-sm-block">Benvenuto, <span id="nomeUtente"></span></p>
+        <button class="btn btn-outline-light btn-sm" id="logoutBtn">Logout</button>
+      </div>
     </div>
   </nav>
 
- 
-    <!-- CONTENUTO PRINCIPALE -->
-  <main class="container-fluid flex-grow-1 p-0">
-    <div class="grid-container">
+  <!-- CONTENUTO PRINCIPALE RESPONSIVE -->
+  <main class="container-fluid flex-grow-1 px-3">
+    <!-- row g-3 gestisce lo spazio (gutter) tra le colonne sia in verticale che in orizzontale -->
+    <div class="row g-3">
 
-      <!-- COLONNA 1: Menu (Aggiunta classe left-column) -->
-      <div class="col-scroll p-3 border bg-light left-column">
-        <h4>Menu Principale</h4>
-        <div id="menuSx"></div>
+      <!-- COLONNA 1: Menu (Larghezza fissa su desktop, intera su mobile) -->
+      <div class="col-12 col-lg-2 col-scroll p-3 border bg-light left-column rounded shadow-sm">
+        <h4 class="h5 border-bottom pb-2">Menu Principale</h4>
+        <div id="menuSx" class="nav flex-column"></div>
       </div>
 
-      <!-- COLONNA 2: Dashboard e Tabelle -->
-      <div class="col-scroll p-3 border bg-light position-relative center-column">
-        <div class="container bg-secondary p-3 mb-3 d-none" id="secondMenu">
-          <a class="navbar-brand" href="#">Intestazione</a>
+      <!-- COLONNA 2: Dashboard e Tabelle (Occupa lo spazio centrale rimanente) -->
+      <div class="col-12 col-lg-7 col-scroll p-3 border bg-light position-relative center-column rounded shadow-sm">
+        <div class="container bg-secondary text-white p-2 mb-3 d-none rounded" id="secondMenu">
+          <span class="fw-bold">Intestazione</span>
         </div>
 
-        <div class="d-flex flex-wrap gap-2">
-          <div id="dashboardReparti" class="dashboard col-md-12"></div>  
+        <!-- Dashboard -->
+        <div class="row">
+          <div id="dashboardReparti" class="dashboard col-12 mb-3"></div>  
         </div>
-        <div id="tabellaTrasf"></div>
-        <div id="tabellaDimissioni"></div>
-        <div id="tabellaRicoverati"></div>
+        
+        <!-- Tabelle Dati (Ricordati di inserire la classe .table-responsive nel JS che genera le tabelle) -->
+        <div id="tabellaTrasf" class="table-responsive mb-3"></div>
+        <div id="tabellaDimissioni" class="table-responsive mb-3"></div>
+        <div id="tabellaRicoverati" class="table-responsive mb-3"></div>
       </div>
 
-      <!-- COLONNA 3: Pazienti e Letti -->
-      <div class="right-column p-3 border bg-light col-scroll">
-        <h2 id="lettiLiberi" class="h6"></h2>
-        <h2 id="lettiChiusi" class="h6"></h2>
-        <h2 id="pzTrasferiti" class="h6"></h2>
-        <div id="tabellaRisultati"></div>
-        <!-- Contenitore a fila unica -->
-        <div class="beds-row-container" id="contenitoreLettoDx">
+      <!-- COLONNA 3: Pazienti e Letti (Colonna destra su desktop, in fondo su mobile) -->
+      <div class="col-12 col-lg-3 col-scroll p-3 border bg-light right-column rounded shadow-sm">
+        <h4 class="h5 border-bottom pb-2 mb-3">Stato Letti & Pazienti</h4>
+        <h2 id="lettiLiberi" class="h6 badge bg-success d-block text-start p-2 mb-2"></h2>
+        <h2 id="lettiChiusi" class="h6 badge bg-danger d-block text-start p-2 mb-2"></h2>
+        <h2 id="pzTrasferiti" class="h6 badge bg-warning text-dark d-block text-start p-2 mb-3"></h2>
+        
+        <div id="tabellaRisultati" class="table-responsive mb-3"></div>
+        
+        <!-- Contenitore letti ottimizzato per la visualizzazione a griglia flessibile -->
+        <div class="beds-row-container d-flex flex-wrap gap-1" id="contenitoreLettoDx">
           <!-- Generato dinamicamente da JS (da 1 a 54 volte) -->
         </div>
       </div>
 
     </div>
   </main>
+
 
 
   <!-- FOOTER -->

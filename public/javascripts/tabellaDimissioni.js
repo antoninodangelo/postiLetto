@@ -3,7 +3,7 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
     if (!container) return;
 
     container.innerHTML = "";
-
+    console.log('id utente passato alla funzione', IDUtente);
     // --- FETCH DATI ---
     const res = await fetch(`/territorio/pazientiDimessiPerSetting/${IDUtente}/${livelloAccesso}`);
     if (!res.ok) {
@@ -98,7 +98,7 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
                 "align-items-center",
                 "gap-1"
             );
-
+            console.log(p);
             // dataset corretti
             b_annulla_trasf.dataset.idPaziente = p.IDPaziente;
             b_annulla_trasf.dataset.idPazienteProv = p.IDPazienteProv;
@@ -109,6 +109,7 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
 
                 // 1) Recupero ID letto provvisorio
                 const resLetto = await fetch(`/territorio/getIDPostolettoProv/${p.IDPazienteProv}`);
+                console.log('id provvisori', resLetto)
                 const lettoProv = await resLetto.json();
 
                 console.log("Letto provvisorio:", lettoProv);
