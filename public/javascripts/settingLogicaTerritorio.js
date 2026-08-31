@@ -970,7 +970,7 @@ function creaReparto(nome, IDSetting, livelloAccesso) {
                 // Click letto
                 lettoElement.addEventListener("click", () => {
                     if (livelloAccesso < 50) {
-                        attivaModal(event, datiForm.IDPostoLetto, IDSetting, "modale");
+                        attivaModal(e, datiForm.IDPostoLetto, IDSetting, "modale");
                     }
                     toggleLetto(lettoElement, reparto);
 
@@ -1128,8 +1128,48 @@ document.addEventListener('click', async (e) => {
             console.error(err);
             alert("Errore di comunicazione col server");
         }
+        
 
         return;
+    }
+    if( e.target.classList.contains('btn-cancella')) {
+        const tr = e.target.closest('tr');
+        const idPostoLetto = tr.dataset.idPostoLetto;
+        const idPaziente = tr.dataset.idPaziente;
+        const controllo = confirm("SEI SICURO DI VOLER CANCELLARE IL PAZIENTE?");
+        if(controllo){
+            await fetch(`/territorio/cancellaInserimento/${idPaziente}/${idPostoLetto}`);
+            //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
+              await caricaSetting(IDUtente, livelloAccesso);
+                caricaStatoLetti();
+                caricaZona();
+                generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
+                generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
+        }        
+        else {
+            alert('CANELLAZIONE ANNULLATA');
+            return;
+        }
+    }
+   
+if( e.target.classList.contains('btn-dimetti')) {
+        const tr = e.target.closest('tr');
+        const idPostoLetto = tr.dataset.idPostoLetto;
+        const idPaziente = tr.dataset.idPaziente;
+        const controllo = confirm("SEI SICURO DI VOLER ANNULLARE LA DIMISSIONE?");
+        if(controllo){
+            await fetch(`/territorio/dimettiPaziente/${idPaziente}/${idPostoLetto}/${livelloAccesso}/${IDUtente}`);
+            //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
+              await caricaSetting(IDUtente, livelloAccesso); 
+                caricaStatoLetti();
+                caricaZona();
+                generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
+                generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
+        }        
+        else {
+            alert('DIMISSIONE ANNULLATA');
+            return;
+        }
     }
 
 });
