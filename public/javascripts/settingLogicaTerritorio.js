@@ -229,9 +229,8 @@ async function caricaDati() {
     } */
    
     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
-    generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
-    console.log("settingUtente=>",settingUtente);
-    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,caricaSetting,generaTabellaPazienti,settingUtente);
+    generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);    
+    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,caricaSetting,settingUtente,generaTabellaPazienti);
 
    // tabellaRicoverati('tabellaRicoverati',livelloAccesso);
     caricaSettingAppartenenza();
@@ -472,7 +471,7 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
     const container = document.getElementById(idDivAggancio);
     if (!container) return console.error("Div non trovata:", idDivAggancio);
     container.innerHTML = ""; 
-
+   
     for (const settingID of settings) {
 
         const response = await fetch(`/territorio/pazientiPerSetting/${settingID}`);
@@ -1170,6 +1169,38 @@ if( e.target.classList.contains('btn-dimetti')) {
             alert('DIMISSIONE ANNULLATA');
             return;
         }
+    }
+
+    
+if( e.target.classList.contains('btn-trasferisci')) {
+        const tr = e.target.closest('tr');
+        const idPostoLetto = tr.dataset.idPostoLetto;
+        const idPaziente = tr.dataset.idPaziente;
+        const idLettoDestinazione = parseInt(document.getElementById("selectLettiLiberi_"+idPaziente).value,10);
+       
+        const idSettigDestinazione = document.getElementById("selectSetting_"+idPaziente).value;
+        if(idLettoDestinazione === 0 || idLettoDestinazione === undefined){
+            alert('DEVI SELZIONARE UN LETTO DI DESTINAZIONE');
+            return;
+        }
+      console.log(idLettoDestinazione,idSettigDestinazione,"id utente", IDUtente )
+        const controllo = confirm("SEI SICURO DI VOLER TRASFERIRE IL PAZIENTE?");
+       if(controllo){
+            await fetch(`/territorio/aggiornaDataTrasf/${idPaziente}/${idLettoDestinazione}/${IDUtente}/${idPostoLetto}/${idSettigDestinazione}`);
+            //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
+              await caricaSetting(IDUtente, livelloAccesso); 
+                caricaStatoLetti();
+                caricaZona();
+                generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
+               generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso); 
+                  tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,caricaSetting,settingUtente,generaTabellaPazienti);
+        
+                  console.log("tabellaDimissioni", "idutente",IDUtente,"livello accesso",livelloAccesso, "id setting",settingUtente);
+        }        
+        else {
+            alert('TRASFERIMENTO ANNULLATO');
+            return;
+        } 
     }
 
 });

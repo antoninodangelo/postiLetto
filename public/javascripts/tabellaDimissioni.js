@@ -1,7 +1,7 @@
-async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, generaTabellaPazienti, settingUtente) {
+async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settings,generaTabellaPazienti) {
     const container = document.getElementById(containerId)    
     if (!container) return;
-
+ console.log("setting coinvolti", settings);
     container.innerHTML = "";
     console.log('id utente passato alla funzione', IDUtente);
     // --- FETCH DATI ---
@@ -111,18 +111,15 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
                 const resLetto = await fetch(`/territorio/getIDPostolettoProv/${p.IDPazienteProv}`);
                 console.log('id provvisori', resLetto)
                 const lettoProv = await resLetto.json();
-
-                console.log("Letto provvisorio:", lettoProv);
-
                 // 2) Annulla trasferimento
                 await fetch(`/territorio/annullaTasferimento/${lettoProv}/${p.IDPaziente}/${IDUtente}/${p.IDPazienteProv}`);
                 await caricaSetting(IDUtente, livelloAccesso);
                 // 3) Refresh tabelle
                 document.getElementById("tabellaTrasf").innerHTML = "";
-                generaTabellaPostiLiberi(IDUtente, "tabellaTrasf", livelloAccesso);
-                generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);   
-                           
-                tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, generaTabellaPazienti, settingUtente);
+                generaTabellaPostiLiberi(IDUtente, "tabellaTrasf", livelloAccesso);                
+                await generaTabellaPazienti(settings, "tabellaTrasf", livelloAccesso);  
+                tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settings,generaTabellaPazienti);            
+               
             });
 
             tdBtn.appendChild(b_annulla_trasf);

@@ -125,6 +125,7 @@ router.get('/aziende', async (req, res) => {
 // ZONE
 router.get("/pazientiPerSetting/:IDSetting", async(req, res) => {
     const { IDSetting } = req.params;
+    console.log("questo è il setting", IDSetting);
     const sql = `
          SELECT 
             p.IDPaziente,
