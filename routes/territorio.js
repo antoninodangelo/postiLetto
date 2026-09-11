@@ -892,5 +892,25 @@ router.get('/pazientiGestiti', async (req, res) => {
     return res.status(500).json({ error: "Errore server" });
   }
 });
+router.get('/getZone', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM zone WHERE attiva = 1 ORDER BY zona ASC');
+    res.json(rows);
+  } catch (err) {
+    console.error('Errore query:', err);
+    res.status(500).json({ error: 'Errore server' });
+  }
+});
+router.post('/salvaZona', async (req, res) => {
+  const { IDZona, zona, IDAzienda } = req.body;
+  console.log('Dati ricevuti per la nuova zona:', req.body);
+ /*  try {
+    const [result] = await pool.execute('INSERT INTO zone (IDZona, zona, IDAzienda) VALUES (?, ?, ?)', [IDZona, zona, IDAzienda]);
+    res.json(result);
+  } catch (err) {
+    console.error('Errore query:', err);
+    res.status(500).json({ error: 'Errore server' });
+  } */
+});
 
 export default router;

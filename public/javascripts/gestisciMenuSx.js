@@ -9,7 +9,8 @@ function creaMenuSx(
     creaCardRepartoConLettiSVG,
     gestionePiano,
     generaTabellaLettiOccupati,
-    tabellaPazientiGestiti
+    tabellaPazientiGestiti,
+    gestisciFormSetting
 ) {
 
     const menuSx = document.getElementById(gancio);
@@ -50,11 +51,17 @@ function creaMenuSx(
             if (e.target.classList.contains('pazientiGestiti')) {
                 document.getElementById('dashboardReparti').innerHTML = "";
                 document.getElementById('tabellaTrasf').innerHTML = "";
-                document.getElementById('tabellaDimissioni').innerHTML = "";
-                
+                document.getElementById('tabellaDimissioni').innerHTML = "";                
                 tabellaPazientiGestiti ("dashboardReparti",6, user.IDPubblico)
             }
+            if (e.target.classList.contains('gestione_insSetting')) {
+                document.getElementById('dashboardReparti').innerHTML = "";
+                document.getElementById('tabellaTrasf').innerHTML = "";
+                document.getElementById('tabellaDimissioni').innerHTML = "";                
+                gestisciFormSetting( "dashboardReparti", user.IDUtente,  user.IDLivelloAccesso, "saveSetting");
 
+            }
+            
             
         };
 
@@ -74,8 +81,8 @@ function creaMenuSx(
                     <li class="list-group-item gestioneLettiChiusi voce-menuDx pointer">GESTIONE CHIUSURA LETTI</li>
                     <li class="list-group-item estrazioni voce-menuDx  pointer">AREA ESTRAZIONI</li>
                     <li class="list-group-item gestione voce-menuDx  pointer">AREA GESTIONE</li>
-                    <li class="list-group-item gestione_operatori voce-menuDx  display=none pointer">GESTIONE OPERATORI</li>
-
+                    <li class="list-group-item gestione_operatori voce-menuDx">GESTIONE OPERATORI</li>
+                    <li class="list-group-item gestione_insSetting voce-menuDx">GESTIONE SETTINGS</li>
                 </ul>`;
             break;
             case 10:

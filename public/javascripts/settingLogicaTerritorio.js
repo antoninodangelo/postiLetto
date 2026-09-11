@@ -5,6 +5,8 @@ import { gestisciChiusure } from "./gestioneChiusure/gestisciChusuraLetti.js";
 import { creaCardRepartoConLettiSVG } from "./dash/dashboard.js";
 import { gestionePiano } from "./gestioneChiusure/gestionePiano.js";
 import {tabellaPazientiGestiti} from "./tabellaPazientiGestiti.js"
+import { gestisciFormSetting} from "./tabellaInsSetting.js";
+
 
 let setting = [];
 let settingUtente = [];
@@ -33,19 +35,21 @@ fetch('/users/getUserData', { credentials: 'include' })
 
         await caricaDati();
 
-        creaMenuSx(
-            livelloAccesso,
-            "menuSx",
-            data,
-            caricaSetting,
-            generaTabellaPazienti,
-            settingUtente,
-            gestisciChiusure,
-            creaCardRepartoConLettiSVG,
-            gestionePiano,
-            generaTabellaLettiOccupati,
-            tabellaPazientiGestiti
-        );
+       creaMenuSx(
+    livelloAccesso,
+    "menuSx",
+    data,
+    caricaSetting,
+    generaTabellaPazienti,
+    settingUtente,
+    gestisciChiusure,
+    creaCardRepartoConLettiSVG,
+    gestionePiano,
+    generaTabellaLettiOccupati,
+    tabellaPazientiGestiti,     // <── AGGIUNGI QUESTO
+    gestisciFormSetting         // <── ORA È NELLA POSIZIONE GIUSTA
+);
+
     })
     .catch(err => {
         console.error("Errore durante il caricamento dei dati utente:", err);
@@ -1183,7 +1187,7 @@ if( e.target.classList.contains('btn-trasferisci')) {
             alert('DEVI SELZIONARE UN LETTO DI DESTINAZIONE');
             return;
         }
-      console.log(idLettoDestinazione,idSettigDestinazione,"id utente", IDUtente )
+      
         const controllo = confirm("SEI SICURO DI VOLER TRASFERIRE IL PAZIENTE?");
        if(controllo){
             await fetch(`/territorio/aggiornaDataTrasf/${idPaziente}/${idLettoDestinazione}/${IDUtente}/${idPostoLetto}/${idSettigDestinazione}`);
