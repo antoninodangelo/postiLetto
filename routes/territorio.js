@@ -261,6 +261,7 @@ router.get('/letti/:ID', async (req, res) => {
     p.numeroLetto,
     p.IDStatoLetto,
     p.numeroStanza,
+    p.sessoPz,
     paziente.IDPaziente,
     paziente.nomePaziente,
     paziente.cognomePaziente,

@@ -4,8 +4,8 @@ import { tabellaDimissioni } from "./tabellaDimissioni.js";
 import { gestisciChiusure } from "./gestioneChiusure/gestisciChusuraLetti.js";
 import { creaCardRepartoConLettiSVG } from "./dash/dashboard.js";
 import { gestionePiano } from "./gestioneChiusure/gestionePiano.js";
-import {tabellaPazientiGestiti} from "./tabellaPazientiGestiti.js"
-import { gestisciFormSetting} from "./tabellaInsSetting.js";
+import { tabellaPazientiGestiti } from "./tabellaPazientiGestiti.js"
+import { gestisciFormSetting } from "./tabellaInsSetting.js";
 
 
 let setting = [];
@@ -35,20 +35,20 @@ fetch('/users/getUserData', { credentials: 'include' })
 
         await caricaDati();
 
-       creaMenuSx(
-    livelloAccesso,
-    "menuSx",
-    data,
-    caricaSetting,
-    generaTabellaPazienti,
-    settingUtente,
-    gestisciChiusure,
-    creaCardRepartoConLettiSVG,
-    gestionePiano,
-    generaTabellaLettiOccupati,
-    tabellaPazientiGestiti,     // <── AGGIUNGI QUESTO
-    gestisciFormSetting         // <── ORA È NELLA POSIZIONE GIUSTA
-);
+        creaMenuSx(
+            livelloAccesso,
+            "menuSx",
+            data,
+            caricaSetting,
+            generaTabellaPazienti,
+            settingUtente,
+            gestisciChiusure,
+            creaCardRepartoConLettiSVG,
+            gestionePiano,
+            generaTabellaLettiOccupati,
+            tabellaPazientiGestiti,     // <── AGGIUNGI QUESTO
+            gestisciFormSetting         // <── ORA È NELLA POSIZIONE GIUSTA
+        );
 
     })
     .catch(err => {
@@ -125,7 +125,7 @@ const configurazioneFormPz = [
         options: [],
         values: []
     },
-{
+    {
         id: 'settingApp',
         label: 'Setting Appartenenza',
         type: 'select',
@@ -231,14 +231,14 @@ async function caricaDati() {
     /* if(livelloAccesso>=50){ 
         generaTabellaPostiLiberi(IDUtente, 'lettiLiberi', livelloAccesso);
     } */
-   
-    generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
-    generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);    
-    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,caricaSetting,settingUtente,generaTabellaPazienti);
 
-   // tabellaRicoverati('tabellaRicoverati',livelloAccesso);
+    generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
+    generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
+    tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settingUtente, generaTabellaPazienti);
+
+    // tabellaRicoverati('tabellaRicoverati',livelloAccesso);
     caricaSettingAppartenenza();
-    
+
 }
 
 function generaTabellaPostiLiberi(IDUtente, idDivAggancio, livelloAccesso) {
@@ -252,7 +252,7 @@ function generaTabellaPostiLiberi(IDUtente, idDivAggancio, livelloAccesso) {
             //container.innerHTML = ""; // pulizia
             creaTabellaQuery(
                 dati,
-                
+
                 [
                     { label: "N° Letti Liberi", key: "LETTI LIBERI" },
                     { label: "Setting", key: "SETTING" }
@@ -272,7 +272,7 @@ function generaTabellaLettiOccupati(idDivAggancio, livelloAccesso) {
 
             if (!container) return console.error("Div non trovata:", idDivAggancio);
             //container.innerHTML = ""; // pulizia
-           
+
             creaTabellaQuery(
                 dati,
                 [
@@ -281,12 +281,12 @@ function generaTabellaLettiOccupati(idDivAggancio, livelloAccesso) {
                     { label: "Setting", key: "setting" },
                     { label: "Nome", key: "nome" },
                     { label: "N° Letto", key: "numeroLetto" }
-                   
+
                 ],
                 idDivAggancio,
                 "Posti Letto Occupati",
                 "#ec9f10"
-            ); 
+            );
         });
 }
 function generaTabellaPazientiDimessi(giorni, IDUtente, livelloAccesso) {
@@ -474,8 +474,8 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
 
     const container = document.getElementById(idDivAggancio);
     if (!container) return console.error("Div non trovata:", idDivAggancio);
-    container.innerHTML = ""; 
-   
+    container.innerHTML = "";
+
     for (const settingID of settings) {
 
         const response = await fetch(`/territorio/pazientiPerSetting/${settingID}`);
@@ -590,7 +590,7 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
 
 
 
-async function dimettiPaziente(IDPaziente, IDPostoLetto, livelloAccesso,IDUtente) {
+async function dimettiPaziente(IDPaziente, IDPostoLetto, livelloAccesso, IDUtente) {
     const responce = await fetch(`/territorio/dimettiPaziente/${IDPaziente}/${IDPostoLetto}/${livelloAccesso}/${IDUtente}`);
 }
 /*
@@ -708,7 +708,7 @@ function generaFormDinamico(config, storage, idFormHTML) {
             generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
             generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
             generaTabellaPostiChiusi(IDUtente, 'lettiChiusi');
-         
+
 
         } catch (error) {
             console.error('Errore durante il salvataggio:', error);
@@ -773,19 +773,19 @@ async function caricaSetting(IDUtente, livelloAccesso) {
 }
 
 
-async function caricaSettingAppartenenza(idZona=0) {
+async function caricaSettingAppartenenza(idZona = 0) {
     try {
         const response = await fetch(`/territorio/settingAppartenenza/${idZona}`);
         const setting = await response.json();
-        if(setting.length !==0){
-           
-           configurazioneFormPz.find(el => el.id === 'settingApp').options = setting.map(s => s.setting);
+        if (setting.length !== 0) {
+
+            configurazioneFormPz.find(el => el.id === 'settingApp').options = setting.map(s => s.setting);
             configurazioneFormPz.find(el => el.id === 'settingApp').values = setting.map(s => s.IDSetting);
-           
- 
+
+
         }
-        
-        
+
+
     } catch (error) {
         console.error('Errore nella routine caricasetting:', error);
     }
@@ -794,11 +794,11 @@ async function caricaZona() {
     try {
         const response = await fetch(`/territorio/caricaZona`);
         const azienda = await response.json();
-        
+
         // 🔥 Popolo settingUtente SENZA duplicati
         configurazioneFormPz.find(el => el.id === 'zona').options = azienda.map(s => s.testo);
         configurazioneFormPz.find(el => el.id === 'zona').values = azienda.map(s => s.valore);
-       
+
 
     } catch (error) {
         console.error('Errore nella routine caricasetting:', error);
@@ -828,20 +828,20 @@ window.assegnaPaziente = function assegnaPaziente(event, IDPostoLetto, IDSetting
     event.stopPropagation();
     datiformPz.IDPostoLetto = IDPostoLetto;
     datiformPz.IDSetting = datiForm.IDSetting;
-    generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente');    
+    generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente');
     attivaModal(event, IDPostoLetto, datiForm.IDSetting, 'insPaziente');
 }
 function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
 
     const reparto = document.createElement("div");
     reparto.className = "reparto";
-    nomeStruttura = nomeStruttura || nome; // Se nomeStruttura non è fornito, usa nome
+    nomeStruttura = nomeStruttura || nome;
 
     // Pulsanti + / -
     const pulsantiLetto = livelloAccesso >= 50 ? `
-        <svg width="28" height="28" viewBox="0 0 20 20"
+        <svg width="20" height="20" viewBox="0 0 20 20"
              class="piu svg-button" data-id-setting="${IDSetting}">
-            <g transform="scale(1.3)">
+            <g transform="scale(1.4)">
                 <rect x="0.5" y="0.5" width="19" height="19"
                       fill="none" rx="3" stroke="#000" stroke-width="1"/>
                 <g transform="translate(10,10)">
@@ -854,9 +854,9 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
             </g>
         </svg>
 
-        <svg width="28" height="28" viewBox="0 0 20 20"
+        <svg width="20" height="20" viewBox="0 0 20 20"
              class="meno svg-button" data-id-setting="${IDSetting}">
-            <g transform="scale(1.3)">
+            <g transform="scale(1.4)">
                 <rect x="0.5" y="0.5" width="19" height="19"
                       fill="none" rx="3" stroke="#000" stroke-width="1"/>
                 <g transform="translate(10,10)">
@@ -888,15 +888,17 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
                     letto.dataInserimento,
                     letto.dataTrafPrevista,
                     letto.dataTrasf,
-                    letto.sesso,
+                    letto.sessoPz,
                     letto.numeroStanza,
                     livelloAccesso
                 );
 
                 const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                svg.setAttribute("viewBox", "0 0 30 30");
-                svg.setAttribute("width", "34");
-                svg.setAttribute("height", "34");
+
+                // SVG molto più grande e leggibile
+                svg.setAttribute("viewBox", "0 0 50 50");
+                svg.setAttribute("width", "50");
+                svg.setAttribute("height", "50");
 
                 svg.dataset.IDPostoLetto = letto.IDPostoLetto;
                 svg.dataset.IDSetting = IDSetting;
@@ -907,33 +909,59 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
                     ? `${letto.nomePaziente[0]} ${letto.cognomePaziente[0]}`
                     : "Inserisci";
 
-                svg.innerHTML = icona || `
-                    <g transform="scale(1.1)">
-                        <text x="10" y="4" font-size="3.2" font-weight="600"
-                              text-anchor="middle" fill="#222">
-                            L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
-                        </text>
+                const sessoLetto = letto.sessoPz || "";
 
-                        <rect x="3" y="6" width="4" height="3"
-                              rx="1" fill="var(--bg-letto-dinamico)"></rect>
+                // SVG migliorato
+svg.innerHTML = icona || `
+    <g>
 
-                        <rect x="3" y="9" width="14" height="5"
-                              rx="2" fill="var(--bg-letto-dinamico)"></rect>
+        <!-- Sesso -->
+        <text x="25" y="10" font-size="9" font-weight="800"
+              text-anchor="middle" fill="#000">
+            ${sessoLetto}
+        </text>
 
-                        <text x="10" y="16" font-size="3" font-weight="600"
-                              text-anchor="middle" fill="#333">${statoLetto}</text>
+        <!-- Letto / Stanza -->
+        <text x="25" y="18" font-size="7" font-weight="700"
+              text-anchor="middle" fill="#222">
+            L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
+        </text>
 
-                        <text x="10" y="19" font-size="2.4" font-weight="600"
-                              text-anchor="middle" fill="#555">${labelStato}</text>
+        <!-- Testata letto -->
+        <rect x="14" y="22" width="12" height="7"
+              rx="2" fill="var(--bg-letto-dinamico)"></rect>
 
-                        <g onclick="assegnaPaziente(event, ${letto.IDPostoLetto}, ${letto.IDStatoLetto})">
-                            <rect x="2" y="20" width="16" height="4"
-                                  fill="#fff" stroke="#333" stroke-width="0.3" rx="1"/>
-                            <text x="10" y="23" font-size="2.6" font-weight="600"
-                                  text-anchor="middle" fill="#333">${pzLabel}</text>
-                        </g>
-                    </g>
-                `;
+        <!-- Corpo letto -->
+        <rect x="14" y="31" width="22" height="12"
+              rx="3" fill="var(--bg-letto-dinamico)"></rect>
+
+        <!-- Stato -->
+        <text x="25" y="48" font-size="7" font-weight="800"
+              text-anchor="middle" fill="#333">
+            ${statoLetto}
+        </text>
+
+        <!-- Label stato -->
+        <text x="25" y="55" font-size="5.5" font-weight="600"
+              text-anchor="middle" fill="#555">
+            ${labelStato}
+        </text>
+
+        <!-- Pulsante paziente -->
+        <g onclick="assegnaPaziente(event, ${letto.IDPostoLetto}, ${letto.IDStatoLetto})">
+            <rect x="10" y="58" width="30" height="10"
+                  fill="#fff" stroke="#333" stroke-width="0.6" rx="2"/>
+            <text x="25" y="65" font-size="6" font-weight="800"
+                  text-anchor="middle" fill="#333">
+                ${pzLabel}
+            </text>
+        </g>
+
+    </g>
+`;
+
+
+
 
                 containerLetti.appendChild(svg);
 
@@ -951,6 +979,7 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
 
     return reparto;
 }
+
 
 function assegnaStato(
     IDStatoLetto,
@@ -988,7 +1017,7 @@ function assegnaStato(
     `;
 
     const iconaDonna = (label) => svgPersona("#ff4fa3", label);
-    const iconaUomo  = (label) => svgPersona("#5653de", label);
+    const iconaUomo = (label) => svgPersona("#5653de", label);
 
     // -------------------------
     // SWITCH STATO
@@ -1095,78 +1124,78 @@ document.addEventListener('click', async (e) => {
             console.error(err);
             alert("Errore di comunicazione col server");
         }
-        
+
 
         return;
     }
-    if( e.target.classList.contains('btn-cancella')) {
+    if (e.target.classList.contains('btn-cancella')) {
         const tr = e.target.closest('tr');
         const idPostoLetto = tr.dataset.idPostoLetto;
         const idPaziente = tr.dataset.idPaziente;
         const controllo = confirm("SEI SICURO DI VOLER CANCELLARE IL PAZIENTE?");
-        if(controllo){
+        if (controllo) {
             await fetch(`/territorio/cancellaInserimento/${idPaziente}/${idPostoLetto}`);
             //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
-              await caricaSetting(IDUtente, livelloAccesso);
-                caricaStatoLetti();
-                caricaZona();
-                generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
-                generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
-        }        
+            await caricaSetting(IDUtente, livelloAccesso);
+            caricaStatoLetti();
+            caricaZona();
+            generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
+            generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
+        }
         else {
             alert('CANELLAZIONE ANNULLATA');
             return;
         }
     }
-   
-if( e.target.classList.contains('btn-dimetti')) {
+
+    if (e.target.classList.contains('btn-dimetti')) {
         const tr = e.target.closest('tr');
         const idPostoLetto = tr.dataset.idPostoLetto;
         const idPaziente = tr.dataset.idPaziente;
         const controllo = confirm("SEI SICURO DI VOLER ANNULLARE LA DIMISSIONE?");
-        if(controllo){
+        if (controllo) {
             await fetch(`/territorio/dimettiPaziente/${idPaziente}/${idPostoLetto}/${livelloAccesso}/${IDUtente}`);
             //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
-              await caricaSetting(IDUtente, livelloAccesso); 
-                caricaStatoLetti();
-                caricaZona();
-                generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
-                generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
-        }        
+            await caricaSetting(IDUtente, livelloAccesso);
+            caricaStatoLetti();
+            caricaZona();
+            generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
+            generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
+        }
         else {
             alert('DIMISSIONE ANNULLATA');
             return;
         }
     }
 
-    
-if( e.target.classList.contains('btn-trasferisci')) {
+
+    if (e.target.classList.contains('btn-trasferisci')) {
         const tr = e.target.closest('tr');
         const idPostoLetto = tr.dataset.idPostoLetto;
         const idPaziente = tr.dataset.idPaziente;
-        const idLettoDestinazione = parseInt(document.getElementById("selectLettiLiberi_"+idPaziente).value,10);
-       
-        const idSettigDestinazione = document.getElementById("selectSetting_"+idPaziente).value;
-        if(idLettoDestinazione === 0 || idLettoDestinazione === undefined){
+        const idLettoDestinazione = parseInt(document.getElementById("selectLettiLiberi_" + idPaziente).value, 10);
+
+        const idSettigDestinazione = document.getElementById("selectSetting_" + idPaziente).value;
+        if (idLettoDestinazione === 0 || idLettoDestinazione === undefined) {
             alert('DEVI SELZIONARE UN LETTO DI DESTINAZIONE');
             return;
         }
-      
+
         const controllo = confirm("SEI SICURO DI VOLER TRASFERIRE IL PAZIENTE?");
-       if(controllo){
+        if (controllo) {
             await fetch(`/territorio/aggiornaDataTrasf/${idPaziente}/${idLettoDestinazione}/${IDUtente}/${idPostoLetto}/${idSettigDestinazione}`);
-            await caricaSetting(IDUtente, livelloAccesso); 
-                caricaStatoLetti();
-                caricaZona();
-                generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
-                generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso); 
-                tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,caricaSetting,settingUtente,generaTabellaPazienti);        
-                console.log("tabellaDimissioni", "idutente",IDUtente,"livello accesso",livelloAccesso, "id setting",settingUtente);
-            }        
+            await caricaSetting(IDUtente, livelloAccesso);
+            caricaStatoLetti();
+            caricaZona();
+            generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
+            generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
+            tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settingUtente, generaTabellaPazienti);
+            console.log("tabellaDimissioni", "idutente", IDUtente, "livello accesso", livelloAccesso, "id setting", settingUtente);
+        }
         else {
             alert('TRASFERIMENTO ANNULLATO');
             return;
-        } 
+        }
     }
 
 });
@@ -1174,7 +1203,7 @@ function aggiornaContatori(reparto) {
     const liberi = reparto.querySelectorAll(".letto.libero").length;
     const uomini = reparto.querySelectorAll(".letto.occupato-uomo").length;
     const donne = reparto.querySelectorAll(".letto.occupato-donna").length;
-    
+
 }
 
 const dashboard = document.getElementById("dashboardReparti");
@@ -1237,31 +1266,31 @@ function chiudiModal(idModale) {
         document.body.style.paddingRight = '';
     }, 300); // Attende la fine dell'animazione CSS di chiusura
 }
-document.addEventListener('change',async(e)=>{
+document.addEventListener('change', async (e) => {
     try {
-    const settingAzienda = await fetch(`/territorio/settingAppartenenza/${e.target.value}`);
-    if (!settingAzienda.ok) throw new Error('Errore nella risposta del server');
-    
-    const dati = await settingAzienda.json();
-    if(e.target.id ==='zona'){        
-        
-        configurazioneFormPz.find(el => el.id === 'settingApp').options =
-            dati.map(s => s.setting);
-        configurazioneFormPz.find(el => el.id === 'settingApp').values =
-            dati.map(s => s.IDSetting);
-        creaSelect('settingApp');
-    }
-    if(e.target.id ==='settingApp'){
-        datiformPz.IDSetting = e.target.value;
-       
-    }
+        const settingAzienda = await fetch(`/territorio/settingAppartenenza/${e.target.value}`);
+        if (!settingAzienda.ok) throw new Error('Errore nella risposta del server');
+
+        const dati = await settingAzienda.json();
+        if (e.target.id === 'zona') {
+
+            configurazioneFormPz.find(el => el.id === 'settingApp').options =
+                dati.map(s => s.setting);
+            configurazioneFormPz.find(el => el.id === 'settingApp').values =
+                dati.map(s => s.IDSetting);
+            creaSelect('settingApp');
+        }
+        if (e.target.id === 'settingApp') {
+            datiformPz.IDSetting = e.target.value;
+
+        }
     } catch (error) {
         console.error("Errore durante la fetch:", error);
     }
 })
-function creaSelect(gancio){
+function creaSelect(gancio) {
     const campo = configurazioneFormPz.find(el => el.id === gancio);
-    const input=document.getElementById(gancio);
+    const input = document.getElementById(gancio);
     input.innerHTML = "";
     const defaultOption = document.createElement('option');
     defaultOption.value = "";
@@ -1276,7 +1305,7 @@ function creaSelect(gancio){
         input.appendChild(opt);
     });
 
-    
+
 }
 
 

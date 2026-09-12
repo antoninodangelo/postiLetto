@@ -61,8 +61,8 @@
 }
 
 .letti-container svg {
-  width: 34px;        /* 🔥 più grande */
-  height: 34px;
+  width: 50px;        /* 🔥 più grande */
+  height: 50px;
   flex: 0 0 auto;
   cursor: pointer;
   border: 1px solid #aaa;
