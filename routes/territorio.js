@@ -216,27 +216,31 @@ router.get('/settingUtente/:IDUtente/:livelloAccesso', async (req, res) => {
   const livelloAccesso = req.params.livelloAccesso;
   let sql='';
   try {
-    if(livelloAccesso>=50){
-      sql=`SELECT *
-    FROM setting s
-    INNER JOIN utenti_setting us ON us.IDSetting = s.IDSetting
-    INNER JOIN utenti u ON u.IDUtente = us.IDUtente
-    INNER JOIN zone z ON z.IDZona = s.IDZona    
-    WHERE s.ospedaliero =0`;
+    /* if(livelloAccesso>=50){
+      sql=`SELECT s.*, a.nomeAzienda
+FROM setting s
+INNER JOIN utenti_setting us ON us.IDSetting = s.IDSetting
+INNER JOIN utenti u ON u.IDUtente = us.IDUtente
+INNER JOIN zone z ON z.IDZona = s.IDZona
+INNER JOIN aziende_zone az ON az.idZona = z.IDZona
+INNER JOIN aziende a ON a.IDAzienda = az.idAzienda
+WHERE s.ospedaliero = 0;`;
     }
     else{
-      sql=`SELECT *
+      sql=`SELECT s.*, a.nomeAzienda
     FROM setting s
     INNER JOIN utenti_setting us ON us.IDSetting = s.IDSetting
     INNER JOIN utenti u ON u.IDUtente = us.IDUtente
     INNER JOIN zone z ON z.IDZona = s.IDZona
     WHERE u.IDUtente = ?  AND s.ospedaliero =0;`
-    }
-    const [rows] = await pool.query(`SELECT *
+    } */
+    const [rows] = await pool.query(`
+      SELECT *, a.nomeAzienda
     FROM setting s
     INNER JOIN utenti_setting us ON us.IDSetting = s.IDSetting
     INNER JOIN utenti u ON u.IDUtente = us.IDUtente
     INNER JOIN zone z ON z.IDZona = s.IDZona
+    INNER JOIN aziende a ON a.IDAzienda = z.IDAzienda
     WHERE u.IDUtente = ?  AND s.ospedaliero =0;`, [IDUtente]);
     res.json(rows);
   } catch (err) {

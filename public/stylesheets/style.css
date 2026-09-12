@@ -43,39 +43,42 @@
 
 .reparto {
   width: 100%;
+  padding: 6px 8px;
   border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 12px;
   border-radius: 6px;
   background: #fafafa;
-  box-sizing: border-box;
+  margin-bottom: 10px;
 }
 
-/* Contenitore letti — massimo 2 righe visibili */
 .letti-container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  overflow-y: auto;
+  flex-wrap: wrap;          /* 🔥 orizzontale */
+  gap: 4px;
+  overflow-y: auto;         /* 🔥 max 2 righe */
   overflow-x: hidden;
-  padding-right: 50px;
-  max-height: calc(100px * 2 + 6px);
+  max-height: 60px;         /* 🔥 2 righe compatte */
+  padding-right: 4px;
 }
 
-/* Letto singolo */
 .letti-container svg {
-  display: block;
-  width: 60px;
-  height: 100px;
-  flex: 0 0 70px;
+  width: 34px;        /* 🔥 più grande */
+  height: 34px;
+  flex: 0 0 auto;
   cursor: pointer;
   border: 1px solid #aaa;
   border-radius: 4px;
   background: #fff;
-  padding: 10px;
+  padding: 2px;       /* leggero margine */
   box-sizing: border-box;
-  overflow: visible;
 }
+
+
+.svg-button {
+  width: 26px !important;
+  height: 26px !important;
+  cursor: pointer;
+}
+
 
 /* ================================
    LETTI (COLONNA DESTRA)

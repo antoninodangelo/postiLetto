@@ -721,15 +721,50 @@ async function caricaSetting(IDUtente, livelloAccesso) {
         const response = await fetch(`/territorio/settingUtente/${IDUtente}/${livelloAccesso}`);
         const reparto = await response.json();
 
-        document.getElementById('dashboardReparti').innerHTML = "";
+        const aggancio = document.getElementById('dashboardReparti');
+        aggancio.innerHTML = "";
 
         // 🔥 Popolo settingUtente SENZA duplicati
         settingUtente = [...new Set(reparto.map(s => s.IDSetting))];
 
+        // 🔥 Mappa per raggruppare i setting per azienda
+        const aziendeMap = new Map();
 
         reparto.forEach(setting => {
-            const aggancio = document.getElementById('dashboardReparti');
-            aggancio.appendChild(creaReparto(setting.setting, setting.IDSetting, livelloAccesso));
+
+            const nomeAzienda = setting.nomeAzienda || "Senza azienda";
+
+            // 🔥 Se non esiste ancora il box dell'azienda → crealo
+            if (!aziendeMap.has(nomeAzienda)) {
+
+                const aziendaBox = document.createElement('div');
+                aziendaBox.className = "riquadro-azienda";
+                aziendaBox.style.background = "#f2f2f2";     // grigio chiaro
+                aziendaBox.style.padding = "10px";
+                aziendaBox.style.marginBottom = "15px";
+                aziendaBox.style.borderRadius = "6px";
+                aziendaBox.style.border = "1px solid #ccc";
+
+                // Titolo azienda
+                const titolo = document.createElement('h6');
+                titolo.textContent = nomeAzienda;
+                titolo.style.marginBottom = "8px";
+                aziendaBox.appendChild(titolo);
+
+                // Salva il box nella mappa
+                aziendeMap.set(nomeAzienda, aziendaBox);
+
+                // Aggancia il box al DOM
+                aggancio.appendChild(aziendaBox);
+            }
+
+            // 🔥 Recupera il box dell'azienda
+            const boxAzienda = aziendeMap.get(nomeAzienda);
+
+            // 🔥 Inserisci il reparto dentro il box dell'azienda
+            boxAzienda.appendChild(
+                creaReparto(setting.setting, setting.IDSetting, livelloAccesso, nomeAzienda)
+            );
         });
 
     } catch (error) {
@@ -749,7 +784,7 @@ async function caricaSettingAppartenenza(idZona=0) {
            
  
         }
-        // 🔥 Popolo settingUtente SENZA duplicati
+        
         
     } catch (error) {
         console.error('Errore nella routine caricasetting:', error);
@@ -793,197 +828,126 @@ window.assegnaPaziente = function assegnaPaziente(event, IDPostoLetto, IDSetting
     event.stopPropagation();
     datiformPz.IDPostoLetto = IDPostoLetto;
     datiformPz.IDSetting = datiForm.IDSetting;
-    generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente');
-    // modalPaziente.show();
+    generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente');    
     attivaModal(event, IDPostoLetto, datiForm.IDSetting, 'insPaziente');
 }
-function creaReparto(nome, IDSetting, livelloAccesso) {
+function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
+
     const reparto = document.createElement("div");
     reparto.className = "reparto";
-    let pulsantiLetto = "";
-    if (livelloAccesso >= 50) {
-        pulsantiLetto = `<svg width="45" height="30" viewBox="0 0 45 30" xmlns="http://www.w3.org/2000/svg"
-     class="piu svg-button" data-id-setting="${IDSetting}">
+    nomeStruttura = nomeStruttura || nome; // Se nomeStruttura non è fornito, usa nome
 
-  <!-- HITBOX invisibile -->
-  <rect x="0" y="0" width="45" height="30"
-        fill="transparent"
-        class="piu" data-id-setting="${IDSetting}"/>
+    // Pulsanti + / -
+    const pulsantiLetto = livelloAccesso >= 50 ? `
+        <svg width="28" height="28" viewBox="0 0 20 20"
+             class="piu svg-button" data-id-setting="${IDSetting}">
+            <g transform="scale(1.3)">
+                <rect x="0.5" y="0.5" width="19" height="19"
+                      fill="none" rx="3" stroke="#000" stroke-width="1"/>
+                <g transform="translate(10,10)">
+                    <circle cx="0" cy="0" r="4" fill="#000"/>
+                    <line x1="-2" y1="0" x2="2" y2="0"
+                          stroke="#fff" stroke-width="1"/>
+                    <line x1="0" y1="-2" x2="0" y2="2"
+                          stroke="#fff" stroke-width="1"/>
+                </g>
+            </g>
+        </svg>
 
-  <!-- bordo esterno -->
-  <rect x="0.5" y="0.5" width="44" height="29"
-        fill="none" rx="5" ry="5"
-        stroke="#000000" stroke-width="1"
-        class="piu" data-id-setting="${IDSetting}/>
+        <svg width="28" height="28" viewBox="0 0 20 20"
+             class="meno svg-button" data-id-setting="${IDSetting}">
+            <g transform="scale(1.3)">
+                <rect x="0.5" y="0.5" width="19" height="19"
+                      fill="none" rx="3" stroke="#000" stroke-width="1"/>
+                <g transform="translate(10,10)">
+                    <circle cx="0" cy="0" r="4" fill="#000"/>
+                    <line x1="-2" y1="0" x2="2" y2="0"
+                          stroke="#fff" stroke-width="1"/>
+                </g>
+            </g>
+        </svg>
+    ` : "";
 
-  <!-- testata -->
- <rect x="3" y="11" width="4" height="11"
-        rx="2" ry="2"
-        fill="#ff8800" stroke="#000000" stroke-width="1"
-        class="piu" data-id-setting="${IDSetting}"/>
-
-  <!-- lettino -->
-  <rect x="6" y="12.5" width="25" height="7.5"
-        rx="3.5" ry="3.5"
-        fill="#ff8800" stroke="#000000" stroke-width="1"
-        class="piu" data-id-setting="${IDSetting}"/>
-
-  <!-- pulsante PIÙ -->
-  <g transform="translate(32,7.5)" class="piu" data-id-setting="${IDSetting}">
-    <circle cx="5" cy="5" r="5"
-            fill="#000000" stroke="#000000" stroke-width="1"
-            class="piu" data-id-setting="${IDSetting}"/>
-
-    <line x1="2.5" y1="5" x2="7.5" y2="5"
-          stroke="#ffffff" stroke-width="1" stroke-linecap="round"
-          class="piu" data-id-setting="${IDSetting}"/>
-
-    <line x1="5" y1="2.5" x2="5" y2="7.5"
-          stroke="#ffffff" stroke-width="1" stroke-linecap="round"
-          class="piu" data-id-setting="${IDSetting}"/>
-  </g>
-
-</svg>
-
-
-    <svg width="45" height="30" viewBox="0 0 45 30"
-     xmlns="http://www.w3.org/2000/svg" class="meno svg-button" data-id-setting="${IDSetting}">
-
-  <!-- HITBOX invisibile -->
-  <rect x="0" y="0" width="45" height="30"
-        fill="transparent"
-        class="meno" data-id-setting="${IDSetting}" />
-
-  <!-- bordo esterno -->
-  <rect x="0.5" y="0.5" width="44" height="29"
-        fill="none" rx="5" ry="5"
-        stroke="#000000" stroke-width="1"
-        class="meno" data-id-setting="${IDSetting}"/>
-
-  <!-- testata -->
-  <rect x="3" y="11" width="4" height="11"
-        rx="2" ry="2"
-        fill="#ff8800" stroke="#000000" stroke-width="1"
-        class="meno" data-id-setting="${IDSetting}"/>
-
-  <!-- lettino -->
-  <rect x="6" y="12.5" width="25" height="7.5"
-        rx="3.5" ry="3.5"
-        fill="#ff8800" stroke="#000000" stroke-width="1"
-        class="meno" data-id-setting="${IDSetting}"/>
-
-  <!-- pulsante MENO -->
-  <g transform="translate(32,7.5)" class="meno" data-ID-setting="${IDSetting}">
-    <circle cx="5" cy="5" r="5"
-            fill="#000000" stroke="#000000" stroke-width="1"
-            class="meno" data-id-setting="${IDSetting}"/>
-
-    <line x1="2.5" y1="5" x2="7.5" y2="5"
-          stroke="#ffffff" stroke-width="1" stroke-linecap="round"
-          class="meno" data-id-setting="${IDSetting}"/>
-  </g>
-
-</svg>
-
-            </div>
-    `}
-    ;
-
-    // HTML base del reparto
     reparto.innerHTML = `
-        <h6 >${nome}</h6>
+        <h6>${nome}</h6>
         <div class="letti-container"></div>
-       ${pulsantiLetto}
-        `;
+        ${pulsantiLetto}
+    `;
 
-    /* 
-    ///gestione del boarding dei pazienti
-    /// 
-    */
-
-
-    // ORA la letti-container esiste
     const containerLetti = reparto.querySelector(".letti-container");
 
-    // Fetch letti
-
+    // Carica letti
     fetch(`/territorio/letti/${IDSetting}`)
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
-            data.forEach(letto => {                // Ottieni stato, colore e icona
-               const { statoLetto, bgcolor, icona, labelStato } = assegnaStato(
-    letto.IDStatoLetto,
-    letto.dataInserimento,
-    letto.dataTrafPrevista,
-    letto.dataTrasf,
-    letto.sesso,
-    letto.numeroStanza,
-    livelloAccesso
-);
 
-                
-                // Crea SVG letto
-                const lettoElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                lettoElement.setAttribute("viewBox", "0 0 28 34");
-                lettoElement.ID = `letto-${letto.IDPostoLetto}`;
-                lettoElement.dataset.IDPostoLetto = letto.IDPostoLetto;
-                lettoElement.dataset.IDSetting = IDSetting;
+            data.forEach(letto => {
 
-                // Colore dinamico
-                lettoElement.style.setProperty("--bg-letto-dinamico", bgcolor || "#e0e0e0");
-                let pzDimesso = "";
+                const { statoLetto, bgcolor, icona, labelStato } = assegnaStato(
+                    letto.IDStatoLetto,
+                    letto.dataInserimento,
+                    letto.dataTrafPrevista,
+                    letto.dataTrasf,
+                    letto.sesso,
+                    letto.numeroStanza,
+                    livelloAccesso
+                );
 
-                
-                let aPaziente = `<g onclick="assegnaPaziente(event, ${letto.IDPostoLetto}, ${letto.IDStatoLetto})">`;
-                if (letto.IDPaziente !== null) {
-                    
-                    //lettoElement.style.setProperty("--bg-letto-dinamico", "#ff4fa3");
-                    pzDimesso = letto.nomePaziente.substring(0, 1) + " " + letto.cognomePaziente.substring(0, 1);
-                }else{   
-                     pzDimesso = "Inserisci";
-                };
-                // Stati non consentiti: inseriamo gli ID in un array per pulizia
-                
-                if (icona) {
-                    lettoElement.innerHTML = icona;
-                } else {
-                    // Altrimenti disegna il letto
-                    lettoElement.innerHTML = `
-                    <text x="14" y="4" font-size="6" font-weight="bold" text-anchor="middle" fill="#000">
-                    L.${letto.numeroLetto || ""} - S.${letto.numeroStanza || ""}
-                    </text>
-                    <rect x="4" y="6" width="6" height="4" rx="1" fill="var(--bg-letto-dinamico)"></rect>
-                    <rect x="4" y="10" width="20" height="8" rx="2" fill="var(--bg-letto-dinamico)"></rect>
-                    <text x="14" y="28" font-size="6" font-weight="bold" text-anchor="middle" fill="#333">${statoLetto}</text>
-                    <text x="14" y="36" font-size="5" font-weight="bold" text-anchor="middle" fill="#333" >
-                       ${labelStato}
-                    </text>
-                    ${aPaziente}
-                    <rect x="1" y="29" width="27" height="8" fill="white" stroke="#333" stroke-width="0.5" rx="2" ry="2"/>
-                    <text x="14" y="36" font-size="5" font-weight="bold" text-anchor="middle" fill="#333" >
-                       ${pzDimesso}
-                    </text>
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute("viewBox", "0 0 30 30");
+                svg.setAttribute("width", "34");
+                svg.setAttribute("height", "34");
+
+                svg.dataset.IDPostoLetto = letto.IDPostoLetto;
+                svg.dataset.IDSetting = IDSetting;
+
+                svg.style.setProperty("--bg-letto-dinamico", bgcolor || "#e0e0e0");
+
+                const pzLabel = letto.IDPaziente
+                    ? `${letto.nomePaziente[0]} ${letto.cognomePaziente[0]}`
+                    : "Inserisci";
+
+                svg.innerHTML = icona || `
+                    <g transform="scale(1.1)">
+                        <text x="10" y="4" font-size="3.2" font-weight="600"
+                              text-anchor="middle" fill="#222">
+                            L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
+                        </text>
+
+                        <rect x="3" y="6" width="4" height="3"
+                              rx="1" fill="var(--bg-letto-dinamico)"></rect>
+
+                        <rect x="3" y="9" width="14" height="5"
+                              rx="2" fill="var(--bg-letto-dinamico)"></rect>
+
+                        <text x="10" y="16" font-size="3" font-weight="600"
+                              text-anchor="middle" fill="#333">${statoLetto}</text>
+
+                        <text x="10" y="19" font-size="2.4" font-weight="600"
+                              text-anchor="middle" fill="#555">${labelStato}</text>
+
+                        <g onclick="assegnaPaziente(event, ${letto.IDPostoLetto}, ${letto.IDStatoLetto})">
+                            <rect x="2" y="20" width="16" height="4"
+                                  fill="#fff" stroke="#333" stroke-width="0.3" rx="1"/>
+                            <text x="10" y="23" font-size="2.6" font-weight="600"
+                                  text-anchor="middle" fill="#333">${pzLabel}</text>
+                        </g>
                     </g>
-                        `;
-                }
+                `;
 
-                // Append letto
-                containerLetti.appendChild(lettoElement);
+                containerLetti.appendChild(svg);
 
-                // Click letto
-                lettoElement.addEventListener("click", () => {
-                    if (livelloAccesso < 50) {
-                        attivaModal(e, datiForm.IDPostoLetto, IDSetting, "modale");
+                svg.addEventListener("click", (event) => {
+                    if (livelloAccesso <= 50) {
+                        attivaModal(event, letto.IDPostoLetto, IDSetting, "modale");
                     }
-                    toggleLetto(lettoElement, reparto);
-
+                    toggleLetto(svg, reparto);
                 });
             });
 
             aggiornaContatori(reparto);
-
         })
-        .catch(error => console.error("Errore:", error));
+        .catch(err => console.error("Errore:", err));
 
     return reparto;
 }
@@ -1191,16 +1155,14 @@ if( e.target.classList.contains('btn-trasferisci')) {
         const controllo = confirm("SEI SICURO DI VOLER TRASFERIRE IL PAZIENTE?");
        if(controllo){
             await fetch(`/territorio/aggiornaDataTrasf/${idPaziente}/${idLettoDestinazione}/${IDUtente}/${idPostoLetto}/${idSettigDestinazione}`);
-            //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
-              await caricaSetting(IDUtente, livelloAccesso); 
+            await caricaSetting(IDUtente, livelloAccesso); 
                 caricaStatoLetti();
                 caricaZona();
                 generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
-               generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso); 
-                  tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,caricaSetting,settingUtente,generaTabellaPazienti);
-        
-                  console.log("tabellaDimissioni", "idutente",IDUtente,"livello accesso",livelloAccesso, "id setting",settingUtente);
-        }        
+                generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso); 
+                tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso,generaTabellaPostiLiberi,caricaSetting,settingUtente,generaTabellaPazienti);        
+                console.log("tabellaDimissioni", "idutente",IDUtente,"livello accesso",livelloAccesso, "id setting",settingUtente);
+            }        
         else {
             alert('TRASFERIMENTO ANNULLATO');
             return;
