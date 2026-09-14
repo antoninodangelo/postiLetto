@@ -159,14 +159,16 @@ const configurazioneForm = [
         label: 'ID Letto:',
         type: 'text',
         required: false,
-        disabled: true
+        disabled: true,
+        visibile: false
     },
     {
         id: 'IDSetting',
         label: 'ID Setting:',
         type: 'text',
         required: false,
-        disabled: true
+        disabled: true,
+        visibile: false
     },
     {
         id: 'IDStatoLetto',
@@ -175,13 +177,19 @@ const configurazioneForm = [
         options: [],
         values: []
     },
-
     {
         id: 'IDTipoLetto',
         label: 'Tipo Letto',
         type: 'select',
         options: ['LETTO', 'BARELLA', 'POLTRONA'],
         values: [1, 2, 3]
+    },
+     {
+        id: 'sessoPz',
+        label: 'Sesso',
+        type: 'select',
+        options: ['DONNA', 'UOMO'],
+        values: [1, 2]
     },
     {
         id: 'numeroStanza',
@@ -214,6 +222,7 @@ let datiForm = {
     IDPostoLetto: 1,
     IDSetting: null,
     numeroLetto: 1,
+    sessoPz: 1,
     IDStatoLetto: 1,
     IDTipoLetto: 1,
     numeroStanza: 1,
@@ -617,6 +626,7 @@ function generaFormDinamico(config, storage, idFormHTML) {
         label.htmlFor = campo.id;
         label.className = 'form-label fw-bold mb-1';
         label.innerText = campo.label;
+        if (campo.visibile === false) label.style.display = 'none';
         wrapper.appendChild(label);
         // Variabile di supporto per l'elemento di input specifico
         let input;
@@ -632,6 +642,8 @@ function generaFormDinamico(config, storage, idFormHTML) {
                 input.appendChild(opt);
             });
             if (campo.required) input.required = true;
+            if (campo.visibile === false) input.style.display = 'none';
+        
         } else if (campo.type === 'textarea') {
             input = document.createElement('textarea');
             if (campo.placeholder) input.placeholder = campo.placeholder;
@@ -643,6 +655,7 @@ function generaFormDinamico(config, storage, idFormHTML) {
             if (campo.placeholder) input.placeholder = campo.placeholder;
             if (campo.required) input.required = true;
             if (campo.disabled) input.disabled = true;
+            if (campo.visibile === false) input.style.display = 'none';
             storage[campo.id] = storage[campo.id] || ''; // Inizializza il valore nello storage se non presente
         }
 
@@ -662,6 +675,7 @@ function generaFormDinamico(config, storage, idFormHTML) {
         });
         // Appende l'input al wrapper e il wrapper al form principale
         wrapper.appendChild(input);
+       
         formElement.appendChild(wrapper);
     });
 
@@ -914,25 +928,24 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
                 // SVG migliorato
 svg.innerHTML = icona || `
     <g>
-
         <!-- Sesso -->
-        <text x="25" y="10" font-size="9" font-weight="800"
+        <text x="25" y="10" font-size="11" font-weight="600"
               text-anchor="middle" fill="#000">
             ${sessoLetto}
         </text>
 
         <!-- Letto / Stanza -->
-        <text x="25" y="18" font-size="7" font-weight="700"
+        <text x="25" y="18" font-size="9" font-weight="700"
               text-anchor="middle" fill="#222">
             L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
         </text>
 
         <!-- Testata letto -->
-        <rect x="14" y="22" width="12" height="7"
+        <rect x="14" y="22" width="12" height="4"
               rx="2" fill="var(--bg-letto-dinamico)"></rect>
 
         <!-- Corpo letto -->
-        <rect x="14" y="31" width="22" height="12"
+        <rect x="14" y="29" width="22" height="6"
               rx="3" fill="var(--bg-letto-dinamico)"></rect>
 
         <!-- Stato -->
@@ -959,10 +972,6 @@ svg.innerHTML = icona || `
 
     </g>
 `;
-
-
-
-
                 containerLetti.appendChild(svg);
 
                 svg.addEventListener("click", (event) => {
