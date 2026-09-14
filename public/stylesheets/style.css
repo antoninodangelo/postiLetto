@@ -83,7 +83,10 @@
 /* ================================
    LETTI (COLONNA DESTRA)
 ================================ */
-
+.letti-container svg g {
+    cursor: pointer;
+    pointer-events: all;
+}
 .bed-row {
   display: flex;
   align-items: center;
@@ -117,21 +120,47 @@
 .pointer {
   cursor: pointer;
 }
-// css per tabella generaTabellaPazienti
-.table-compact td,
-.table-compact th {
-    padding: 4px 6px !important;   /* riduce altezza */
-    font-size: 0.80rem !important; /* testo più piccolo */
-    vertical-align: middle !important;
+/* Modale INSERIMENTO PAZIENTE — versione compatta */
+#insPaziente.modal .modal-dialog .modal-content {
+    padding: 0 !important;
 }
 
-.table-compact select.form-select-sm {
-    padding: 2px 4px !important;
-    font-size: 0.75rem !important;
+/* HEADER più compatto */
+#insPaziente.modal .modal-dialog .modal-header {
+    padding: 6px 10px !important;
+}
+
+#insPaziente.modal .modal-dialog .modal-title {
+    font-size: 14px !important;
+    margin: 0 !important;
+}
+
+/* BODY più compatto */
+#insPaziente.modal .modal-dialog .modal-body {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+}
+
+/* FOOTER più compatto */
+#insPaziente.modal .modal-dialog .modal-footer {
+    padding: 6px 10px !important;
+}
+
+/* Campi del form più piccoli */
+#insPaziente.modal .modal-dialog .form-control {
+    font-size: 12px !important;
+    padding: 4px 6px !important;
     height: auto !important;
 }
 
-.table-compact .btn-sm {
-    padding: 2px 6px !important;
-    font-size: 0.75rem !important;
+/* Label più piccole */
+#insPaziente.modal .modal-dialog label {
+    font-size: 12px !important;
+    margin-bottom: 2px !important;
+}
+
+/* Pulsanti più piccoli */
+#insPaziente.modal .modal-dialog .btn {
+    font-size: 12px !important;
+    padding: 4px 10px !important;
 }

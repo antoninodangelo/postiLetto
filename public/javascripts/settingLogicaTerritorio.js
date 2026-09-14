@@ -184,7 +184,7 @@ const configurazioneForm = [
         options: ['LETTO', 'BARELLA', 'POLTRONA'],
         values: [1, 2, 3]
     },
-     {
+    {
         id: 'sessoPz',
         label: 'Sesso',
         type: 'select',
@@ -595,10 +595,6 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
         container.appendChild(wrapper);
     }
 }
-
-
-
-
 async function dimettiPaziente(IDPaziente, IDPostoLetto, livelloAccesso, IDUtente) {
     const responce = await fetch(`/territorio/dimettiPaziente/${IDPaziente}/${IDPostoLetto}/${livelloAccesso}/${IDUtente}`);
 }
@@ -610,6 +606,7 @@ async function dimettiPaziente(IDPaziente, IDPostoLetto, livelloAccesso, IDUtent
  */
 function generaFormDinamico(config, storage, idFormHTML) {
     const formElement = document.getElementById(idFormHTML);
+    formElement.classList.add("form-compact");
     if (!formElement) return console.error("Form non trovato nell'HTML");
     formElement.innerHTML = ''; // Pulisce il form da vecchi elementi
     formElement.onsubmit = null;
@@ -643,7 +640,7 @@ function generaFormDinamico(config, storage, idFormHTML) {
             });
             if (campo.required) input.required = true;
             if (campo.visibile === false) input.style.display = 'none';
-        
+
         } else if (campo.type === 'textarea') {
             input = document.createElement('textarea');
             if (campo.placeholder) input.placeholder = campo.placeholder;
@@ -675,7 +672,7 @@ function generaFormDinamico(config, storage, idFormHTML) {
         });
         // Appende l'input al wrapper e il wrapper al form principale
         wrapper.appendChild(input);
-       
+
         formElement.appendChild(wrapper);
     });
 
@@ -840,11 +837,16 @@ const modalAlertBody = document.getElementById("modalBodyAlert");
 
 window.assegnaPaziente = function assegnaPaziente(event, IDPostoLetto, IDSetting) {
     event.stopPropagation();
+
     datiformPz.IDPostoLetto = IDPostoLetto;
-    datiformPz.IDSetting = datiForm.IDSetting;
+    datiformPz.IDSetting = IDSetting;
+
     generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente');
-    attivaModal(event, IDPostoLetto, datiForm.IDSetting, 'insPaziente');
-}
+
+    attivaModal(null, IDPostoLetto, IDSetting, 'insPaziente');
+};
+
+
 function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
 
     const reparto = document.createElement("div");
@@ -926,60 +928,52 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
                 const sessoLetto = letto.sessoPz || "";
 
                 // SVG migliorato
-svg.innerHTML = icona || `
-    <g>
-        <!-- Sesso -->
+                svg.innerHTML = `
+    <g class="gestisciLetto">
         <text x="25" y="10" font-size="11" font-weight="600"
-              text-anchor="middle" fill="#000">
-            ${sessoLetto}
-        </text>
+              text-anchor="middle" fill="#000">${sessoLetto}</text>
 
-        <!-- Letto / Stanza -->
         <text x="25" y="18" font-size="9" font-weight="700"
               text-anchor="middle" fill="#222">
             L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
         </text>
 
-        <!-- Testata letto -->
         <rect x="14" y="22" width="12" height="4"
               rx="2" fill="var(--bg-letto-dinamico)"></rect>
 
-        <!-- Corpo letto -->
         <rect x="14" y="29" width="22" height="6"
               rx="3" fill="var(--bg-letto-dinamico)"></rect>
 
-        <!-- Stato -->
-        <text x="25" y="48" font-size="7" font-weight="800"
-              text-anchor="middle" fill="#333">
+        <text x="25" y="48" font-size="12" font-weight="800"
+              text-anchor="middle" fill="#333" class="assegnaPz">
             ${statoLetto}
         </text>
 
-        <!-- Label stato -->
-        <text x="25" y="55" font-size="5.5" font-weight="600"
+        <text x="25" y="55" font-size="6" font-weight="800"
               text-anchor="middle" fill="#555">
             ${labelStato}
         </text>
-
-        <!-- Pulsante paziente -->
-        <g onclick="assegnaPaziente(event, ${letto.IDPostoLetto}, ${letto.IDStatoLetto})">
-            <rect x="10" y="58" width="30" height="10"
-                  fill="#fff" stroke="#333" stroke-width="0.6" rx="2"/>
-            <text x="25" y="65" font-size="6" font-weight="800"
-                  text-anchor="middle" fill="#333">
-                ${pzLabel}
-            </text>
-        </g>
-
     </g>
 `;
+
+                containerLetti.appendChild(svg);
                 containerLetti.appendChild(svg);
 
-                svg.addEventListener("click", (event) => {
-                    if (livelloAccesso <= 50) {
-                        attivaModal(event, letto.IDPostoLetto, IDSetting, "modale");
-                    }
+                // CLICK SUL LETTUCCIO → gestione letto
+                svg.querySelector(".gestisciLetto").addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    attivaModal(null, letto.IDPostoLetto, IDSetting, "modale");
                     toggleLetto(svg, reparto);
                 });
+
+                // CLICK SULLA LABEL STATO → inserimento paziente
+                svg.querySelector(".assegnaPz").addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    assegnaPaziente(event, letto.IDPostoLetto, IDSetting);
+                    toggleLetto(svg, reparto);
+                });
+
+                
             });
 
             aggiornaContatori(reparto);
@@ -1220,8 +1214,11 @@ const dashboard = document.getElementById("dashboardReparti");
 
 window.attivaModal = function (event, IDPostoLetto, IDSetting, tipoModale) {
 
-    event.stopPropagation(); // Evita che il click si propaghi e chiuda il modale
-    event.preventDefault(); // Previene eventuali comportamenti di default del click
+    // 🔥 NON bloccare Bootstrap se event è null
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
 
     const params = {
         backdrop: 'static',
@@ -1237,21 +1234,21 @@ window.attivaModal = function (event, IDPostoLetto, IDSetting, tipoModale) {
         mioModale.show();
         return;
     }
-    else if (tipoModale === 'alert') {
+
+    if (tipoModale === 'alert') {
         const html = document.getElementById("alert");
         mioModale = new bootstrap.Modal(html, params);
         mioModale.show();
         return;
     }
-    else {
-        const html = document.getElementById("insPaziente");
-        generaFormDinamico(configurazioneFormPz, datiformPz, 'formModalePz');
-        mioModale = new bootstrap.Modal(html, params);
-        mioModale.show();
 
-    }
-
+    // 🔥 INSERIMENTO PAZIENTE
+    const html = document.getElementById("insPaziente");
+    generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente'); // 🔥 CORRETTO
+    mioModale = new bootstrap.Modal(html, params);
+    mioModale.show();
 }
+
 // 2) Funzione di chiusura resa sicura
 function chiudiModal(idModale) {
     // Se non passi l'ID, cerchiamo di capire quale dei due modali è visibile
