@@ -1,9 +1,9 @@
 async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settings,generaTabellaPazienti) {
     const container = document.getElementById(containerId)    
     if (!container) return;
- console.log("setting coinvolti", settings);
+ 
     container.innerHTML = "";
-    console.log('id utente passato alla funzione', IDUtente);
+    
     // --- FETCH DATI ---
     const res = await fetch(`/territorio/pazientiDimessiPerSetting/${IDUtente}/${livelloAccesso}`);
     if (!res.ok) {
@@ -114,6 +114,7 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
                 // 2) Annulla trasferimento
                 await fetch(`/territorio/annullaTasferimento/${lettoProv}/${p.IDPaziente}/${IDUtente}/${p.IDPazienteProv}`);
                 await caricaSetting(IDUtente, livelloAccesso);
+                await caricaSetting(IDUtente, livelloAccesso,7);
                 // 3) Refresh tabelle
                 document.getElementById("tabellaTrasf").innerHTML = "";
                 generaTabellaPostiLiberi(IDUtente, "tabellaTrasf", livelloAccesso);                

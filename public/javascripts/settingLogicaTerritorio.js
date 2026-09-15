@@ -6,6 +6,7 @@ import { creaCardRepartoConLettiSVG } from "./dash/dashboard.js";
 import { gestionePiano } from "./gestioneChiusure/gestionePiano.js";
 import { tabellaPazientiGestiti } from "./tabellaPazientiGestiti.js"
 import { gestisciFormSetting } from "./tabellaInsSetting.js";
+import { tabellaBoarding } from "./tabellaBoarding.js";
 
 
 let setting = [];
@@ -27,7 +28,6 @@ fetch('/users/getUserData', { credentials: 'include' })
         if (!data || !data.IDUtente) {
             throw new Error("Dati utente non validi");
         }
-
         document.getElementById('nomeUtente').innerHTML = `${data.nome} ${data.cognome}`;
         IDUtente = data.IDUtente;
         livelloAccesso = data.IDPubblico;
@@ -53,7 +53,7 @@ fetch('/users/getUserData', { credentials: 'include' })
     })
     .catch(err => {
         console.error("Errore durante il caricamento dei dati utente:", err);
-        window.location.href = "/login?error=1";   // 🔥 redirect automatico
+        //window.location.href = "/login?error=1";   // 🔥 redirect automatico
     });
 
 
@@ -233,13 +233,14 @@ let datiForm = {
 
 async function caricaDati() {
     await caricaSetting(IDUtente, livelloAccesso);
+    await caricaSetting(IDUtente, livelloAccesso,7);
     caricaStatoLetti();
     caricaZona();
     generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
-    generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
-    /* if(livelloAccesso>=50){ 
-        generaTabellaPostiLiberi(IDUtente, 'lettiLiberi', livelloAccesso);
-    } */
+    //generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
+    if(livelloAccesso>=50){ 
+       tabellaBoarding();
+    } 
 
     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
@@ -298,8 +299,12 @@ function generaTabellaLettiOccupati(idDivAggancio, livelloAccesso) {
             );
         });
 }
-function generaTabellaPazientiDimessi(giorni, IDUtente, livelloAccesso) {
-    document.getElementById('tabellaRisultati').innerHTML = ""; // pulizia
+/*   function generaTabellaPazientiDimessi(giorni, IDUtente, livelloAccesso) {
+    const container = document.getElementById('tabellaRisultati');
+    if (!container) return console.error("Div non trovata:", 'tabellaRisultati');
+    if (container) {
+        container.innerHTML = ""; // pulizia
+    }
     fetch(`/pazientiDimessi/${giorni}/${IDUtente}/${livelloAccesso}`)
         .then(res => res.json())
         .then(dati => {
@@ -314,7 +319,7 @@ function generaTabellaPazientiDimessi(giorni, IDUtente, livelloAccesso) {
             );
         });
 
-}
+}    */
 function generaTabellaPostiChiusi(IDUtente, idDivAggancio, livelloAccesso) {
 
     fetch(`/numeroLettiChiusi/${IDUtente}/${livelloAccesso}`)
@@ -713,10 +718,11 @@ function generaFormDinamico(config, storage, idFormHTML) {
             });
 
             const data = await response.json();
-            caricaSetting(IDUtente, livelloAccesso);
+            await caricaSetting(IDUtente, livelloAccesso);
+            await caricaSetting(IDUtente, livelloAccesso,7);
             chiudiModal(nomeModale);
             generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
-            generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
+            //generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
             generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
             generaTabellaPostiChiusi(IDUtente, 'lettiChiusi');
 
@@ -727,52 +733,59 @@ function generaFormDinamico(config, storage, idFormHTML) {
     };
 
 }
-async function caricaSetting(IDUtente, livelloAccesso) {
+async function caricaSetting(IDUtente, livelloAccesso, idSetting = null) {
     try {
         const response = await fetch(`/territorio/settingUtente/${IDUtente}/${livelloAccesso}`);
-        const reparto = await response.json();
+let reparto = await response.json();
 
-        const aggancio = document.getElementById('dashboardReparti');
-        aggancio.innerHTML = "";
+let gancioBoarding = 'dashboardReparti';
+let repartoBoarding = null;
+// Se è richiesto il boarding, filtra
+if (idSetting !== null && idSetting !== undefined) {
+    repartoBoarding = reparto.filter(r => r.IDSetting === 7);
+     gancioBoarding = 'boarding';
+}else{
+     repartoBoarding = reparto.filter(r => r.IDSetting !== 7);
+    }
+    reparto = repartoBoarding;
+    console.log('reparto boarding', reparto);
+const aggancio = document.getElementById(gancioBoarding);
+if (!aggancio) {
+    console.error("Elemento non trovato:", gancioBoarding);
+    return;
+}
 
-        // 🔥 Popolo settingUtente SENZA duplicati
+aggancio.innerHTML = "";
+
+
+        // Lista IDSetting senza duplicati
         settingUtente = [...new Set(reparto.map(s => s.IDSetting))];
 
-        // 🔥 Mappa per raggruppare i setting per azienda
+        // Raggruppamento per azienda
         const aziendeMap = new Map();
 
         reparto.forEach(setting => {
-
             const nomeAzienda = setting.nomeAzienda || "Senza azienda";
 
-            // 🔥 Se non esiste ancora il box dell'azienda → crealo
             if (!aziendeMap.has(nomeAzienda)) {
-
                 const aziendaBox = document.createElement('div');
                 aziendaBox.className = "riquadro-azienda";
-                aziendaBox.style.background = "#f2f2f2";     // grigio chiaro
+                aziendaBox.style.background = "#f2f2f2";
                 aziendaBox.style.padding = "10px";
                 aziendaBox.style.marginBottom = "15px";
                 aziendaBox.style.borderRadius = "6px";
                 aziendaBox.style.border = "1px solid #ccc";
 
-                // Titolo azienda
                 const titolo = document.createElement('h6');
                 titolo.textContent = nomeAzienda;
                 titolo.style.marginBottom = "8px";
                 aziendaBox.appendChild(titolo);
-
-                // Salva il box nella mappa
                 aziendeMap.set(nomeAzienda, aziendaBox);
-
-                // Aggancia il box al DOM
                 aggancio.appendChild(aziendaBox);
             }
 
-            // 🔥 Recupera il box dell'azienda
             const boxAzienda = aziendeMap.get(nomeAzienda);
 
-            // 🔥 Inserisci il reparto dentro il box dell'azienda
             boxAzienda.appendChild(
                 creaReparto(setting.setting, setting.IDSetting, livelloAccesso, nomeAzienda)
             );
@@ -782,6 +795,7 @@ async function caricaSetting(IDUtente, livelloAccesso) {
         console.error('Errore nella routine caricasetting:', error);
     }
 }
+
 
 
 async function caricaSettingAppartenenza(idZona = 0) {
@@ -883,20 +897,25 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
             </g>
         </svg>
     ` : "";
+   
+    let containerLettiDx='letti-container'; 
 
-    reparto.innerHTML = `
-        <h6>${nome}</h6>
-        <div class="letti-container"></div>
-        ${pulsantiLetto}
-    `;
+if (IDSetting === 7) {
+    containerLettiDx = 'letti-container-dx';
+}
+reparto.innerHTML = `
+    <h6>${nome}</h6>
+    <div class="${containerLettiDx}"></div>
+    ${pulsantiLetto}
+`;
 
-    const containerLetti = reparto.querySelector(".letti-container");
+const containerLetti = reparto.querySelector(`.${containerLettiDx}`);      
+   
 
     // Carica letti
     fetch(`/territorio/letti/${IDSetting}`)
         .then(r => r.json())
-        .then(data => {
-
+        .then(data => {            
             data.forEach(letto => {
 
                 const { statoLetto, bgcolor, icona, labelStato } = assegnaStato(
@@ -925,8 +944,14 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
                     ? `${letto.nomePaziente[0]} ${letto.cognomePaziente[0]}`
                     : "Inserisci";
 
-                const sessoLetto = letto.sessoPz || "";
-
+                let sessoLetto = letto.sessoPz || "";
+                if (sessoLetto === 1) {
+                    sessoLetto = "F";
+                    svg.style.setProperty("--bg-letto-dinamico", "#ff4fa3");
+                } else if (sessoLetto === 2) {
+                    sessoLetto = "M";
+                    svg.style.setProperty("--bg-letto-dinamico", "#5653de");
+                }
                 // SVG migliorato
                 svg.innerHTML = `
     <g class="gestisciLetto">
@@ -957,7 +982,7 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
 `;
 
                 containerLetti.appendChild(svg);
-                containerLetti.appendChild(svg);
+                
 
                 // CLICK SUL LETTUCCIO → gestione letto
                 svg.querySelector(".gestisciLetto").addEventListener("click", (event) => {
@@ -1101,7 +1126,8 @@ document.addEventListener('click', async (e) => {
 
         const dati = await response.json();
 
-        caricaSetting(IDUtente, livelloAccesso);
+        await caricaSetting(IDUtente, livelloAccesso);
+        await caricaSetting(IDUtente, livelloAccesso,7);
     }
 
     if (btnMeno) {
@@ -1121,7 +1147,8 @@ document.addEventListener('click', async (e) => {
                 return;
             }
 
-            caricaSetting(IDUtente, livelloAccesso);
+            await caricaSetting(IDUtente, livelloAccesso);
+            await caricaSetting(IDUtente, livelloAccesso,7);
 
         } catch (err) {
             console.error(err);
@@ -1140,6 +1167,7 @@ document.addEventListener('click', async (e) => {
             await fetch(`/territorio/cancellaInserimento/${idPaziente}/${idPostoLetto}`);
             //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
             await caricaSetting(IDUtente, livelloAccesso);
+            await caricaSetting(IDUtente, livelloAccesso,7);
             caricaStatoLetti();
             caricaZona();
             generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
@@ -1160,6 +1188,7 @@ document.addEventListener('click', async (e) => {
             await fetch(`/territorio/dimettiPaziente/${idPaziente}/${idPostoLetto}/${livelloAccesso}/${IDUtente}`);
             //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
             await caricaSetting(IDUtente, livelloAccesso);
+            await caricaSetting(IDUtente, livelloAccesso,7);
             caricaStatoLetti();
             caricaZona();
             generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
@@ -1188,12 +1217,13 @@ document.addEventListener('click', async (e) => {
         if (controllo) {
             await fetch(`/territorio/aggiornaDataTrasf/${idPaziente}/${idLettoDestinazione}/${IDUtente}/${idPostoLetto}/${idSettigDestinazione}`);
             await caricaSetting(IDUtente, livelloAccesso);
+            await caricaSetting(IDUtente, livelloAccesso,7);
             caricaStatoLetti();
             caricaZona();
             generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
             generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
             tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settingUtente, generaTabellaPazienti);
-            console.log("tabellaDimissioni", "idutente", IDUtente, "livello accesso", livelloAccesso, "id setting", settingUtente);
+            
         }
         else {
             alert('TRASFERIMENTO ANNULLATO');
@@ -1310,10 +1340,4 @@ function creaSelect(gancio) {
 
         input.appendChild(opt);
     });
-
-
 }
-
-
-
-

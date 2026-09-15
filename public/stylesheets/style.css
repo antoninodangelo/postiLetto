@@ -59,6 +59,14 @@
   max-height: 60px;         /* 🔥 2 righe compatte */
   padding-right: 4px;
 }
+.letti-dx {
+  display: flex;
+  flex-direction: column;   /* 🔥 uno per riga */
+  gap: 4px;
+  overflow-y: auto;         /* scroll verticale */
+  max-height: 200px;        /* limite visivo */
+  padding-right: 4px;
+}
 
 .letti-container svg {
   width: 50px;        /* 🔥 più grande */
@@ -70,6 +78,24 @@
   background: #fff;
   padding: 2px;       /* leggero margine */
   box-sizing: border-box;
+}
+.letti-container-dx {
+  display: grid;                     /* 🔥 attiva la griglia */
+  grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+  gap: 6px;
+
+  padding: 6px;
+
+  min-height: 200px;
+  max-height: 300px;                 /* 🔥 altezza massima */
+  overflow-y: auto;                  /* scroll verticale */
+  overflow-x: hidden;
+}
+
+.svg-button {
+  width: 16px !important;
+  height: 16px !important;
+  cursor: pointer;
 }
 
 
@@ -83,10 +109,7 @@
 /* ================================
    LETTI (COLONNA DESTRA)
 ================================ */
-.letti-container svg g {
-    cursor: pointer;
-    pointer-events: all;
-}
+
 .bed-row {
   display: flex;
   align-items: center;
