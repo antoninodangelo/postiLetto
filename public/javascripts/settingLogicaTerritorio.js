@@ -883,6 +883,10 @@ async function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
     reparto.className = "reparto";
     nomeStruttura = nomeStruttura || nome;
 
+    // 🔥 I CONTATORI DEVONO ESSERE QUI
+    let contatoreUomini = 0;
+    let contatoreDonne = 0;
+
     let containerLettiDx = (IDSetting === 7) ? "letti-container-dx" : "letti-container";
 
   const pulsantiLetto = livelloAccesso >= 50 ? `
@@ -914,36 +918,43 @@ async function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
             </g>
         </svg>
     ` : "";
+   
+    let containerLettiDx='letti-container'; 
 
-    const containerLetti = reparto.querySelector(`.${containerLettiDx}`);
+if (IDSetting === 7) {
+    containerLettiDx = 'letti-container-dx';
+}
+reparto.innerHTML = `
+    <h6>${nome}</h6>
+    <div class="${containerLettiDx}"></div>
+    ${pulsantiLetto}
+`;
 
-    // 🔥 FETCH LETTI — ORA CON await
-    let data;
-    try {
-        const r = await fetch(`/territorio/letti/${IDSetting}`);
-        data = await r.json();
-    } catch (err) {
-        console.error("Errore caricamento letti:", err);
-        return reparto;
-    }
+const containerLetti = reparto.querySelector(`.${containerLettiDx}`);      
+   
 
-    // 🔥 RENDER LETTI
-    data.forEach(letto => {
+    // Carica letti
+    fetch(`/territorio/letti/${IDSetting}`)
+        .then(r => r.json())
+        .then(data => {            
+            data.forEach(letto => {
 
-        const { statoLetto, bgcolor, icona, labelStato } = assegnaStato(
-            letto.IDStatoLetto,
-            letto.dataInserimento,
-            letto.dataTrafPrevista,
-            letto.dataTrasf,
-            letto.sessoPz,
-            letto.numeroStanza,
-            livelloAccesso
-        );
+                const { statoLetto, bgcolor, icona, labelStato } = assegnaStato(
+                    letto.IDStatoLetto,
+                    letto.dataInserimento,
+                    letto.dataTrafPrevista,
+                    letto.dataTrasf,
+                    letto.sessoPz,
+                    letto.numeroStanza,
+                    livelloAccesso
+                );
 
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("viewBox", "0 0 50 50");
-        svg.setAttribute("width", "50");
-        svg.setAttribute("height", "50");
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+                // SVG molto più grande e leggibile
+                svg.setAttribute("viewBox", "0 0 50 50");
+                svg.setAttribute("width", "50");
+                svg.setAttribute("height", "50");
 
         svg.dataset.IDPostoLetto = letto.IDPostoLetto;
         svg.dataset.IDSetting = IDSetting;
@@ -954,86 +965,69 @@ async function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
             ? `${letto.nomePaziente[0]} ${letto.cognomePaziente[0]}`
             : "Inserisci";
 
-        let sessoLetto = letto.sessoPz || "";
-        if (sessoLetto === 1) {
-            sessoLetto = "F";
-            svg.style.setProperty("--bg-letto-dinamico", "#ff4fa3");
-        } else if (sessoLetto === 2) {
-            sessoLetto = "M";
-            svg.style.setProperty("--bg-letto-dinamico", "#5653de");
-        }
+                let sessoLetto = letto.sessoPz || "";
+                if (sessoLetto === 1) {
+                    sessoLetto = "F";
+                    svg.style.setProperty("--bg-letto-dinamico", "#ff4fa3");
+                } else if (sessoLetto === 2) {
+                    sessoLetto = "M";
+                    svg.style.setProperty("--bg-letto-dinamico", "#5653de");
+                }
+                // SVG migliorato
+                svg.innerHTML = `
+    <g class="gestisciLetto">
+        <text x="25" y="10" font-size="11" font-weight="600"
+              text-anchor="middle" fill="#000">${sessoLetto}</text>
 
-        svg.innerHTML = `
-            <g class="gestisciLetto">
-                <text x="25" y="10" font-size="11" font-weight="600"
-                      text-anchor="middle">${sessoLetto}</text>
+        <text x="25" y="18" font-size="9" font-weight="700"
+              text-anchor="middle" fill="#222">
+            L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
+        </text>
 
-                <text x="25" y="18" font-size="9" font-weight="700"
-                      text-anchor="middle">
-                    L${letto.numeroLetto}/S${letto.numeroStanza}
-                </text>
+        <rect x="14" y="22" width="12" height="4"
+              rx="2" fill="var(--bg-letto-dinamico)"></rect>
 
-                <rect x="14" y="22" width="12" height="4" rx="2"
-                      fill="var(--bg-letto-dinamico)"></rect>
+        <rect x="14" y="29" width="22" height="6"
+              rx="3" fill="var(--bg-letto-dinamico)"></rect>
 
-                <rect x="14" y="29" width="22" height="6" rx="3"
-                      fill="var(--bg-letto-dinamico)"></rect>
+        <text x="25" y="48" font-size="12" font-weight="800"
+              text-anchor="middle" fill="#333" class="assegnaPz">
+            ${statoLetto}
+        </text>
 
-                <text x="25" y="48" font-size="12" font-weight="800"
-                      text-anchor="middle" class="assegnaPz">
-                    ${statoLetto}
-                </text>
+        <text x="25" y="55" font-size="6" font-weight="800"
+              text-anchor="middle" fill="#555">
+            ${labelStato}
+        </text>
+    </g>
+`;
 
-                <text x="25" y="55" font-size="6" font-weight="800"
-                      text-anchor="middle">${labelStato}</text>
-            </g>
-        `;
+                containerLetti.appendChild(svg);
+                
 
-        containerLetti.appendChild(svg);
+                // CLICK SUL LETTUCCIO → gestione letto
+                svg.querySelector(".gestisciLetto").addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    attivaModal(null, letto.IDPostoLetto, IDSetting, "modale");
+                    toggleLetto(svg, reparto);
+                });
 
-        // 🔥 CLICK LETTUCCIO → gestione letto
-        svg.querySelector(".gestisciLetto").addEventListener("click", (event) => {
-            event.stopPropagation();
-            attivaModal(null, letto.IDPostoLetto, IDSetting, "modale");
-            toggleLetto(svg, reparto);
-        });
+                // CLICK SULLA LABEL STATO → inserimento paziente
+                svg.querySelector(".assegnaPz").addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    assegnaPaziente(event, letto.IDPostoLetto, IDSetting);
+                    toggleLetto(svg, reparto);
+                });
 
-        // 🔥 CLICK STATO → inserimento paziente
-        svg.querySelector(".assegnaPz").addEventListener("click", (event) => {
-            event.stopPropagation();
-            assegnaPaziente(event, letto.IDPostoLetto, IDSetting);
-            toggleLetto(svg, reparto);
-        });
-    });
+                
+            });
 
-    aggiornaContatori(reparto);
-
-    // 🔥 ORA puoi usare await senza errori
-    const lettiLiberiSesso = await lettiLiberiPerSesso(IDSetting);
-    console.log("LettI Liberi per Sesso:", lettiLiberiSesso);
-    const info = document.createElement("div");
-    info.className = "svg-wrapper";
-    info.innerText = `Letti liberi: M: ${lettiLiberiSesso[0]?.M || 0} | F: ${lettiLiberiSesso[0]?.F || 0}`;
-    reparto.appendChild(info);
+            aggiornaContatori(reparto);
+        })
+        .catch(err => console.error("Errore:", err));
 
     return reparto;
 }
-
-async function lettiLiberiPerSesso(IDSetting) {
-    try {
-        const response = await fetch(`/territorio/lettiLiberiSettingPerSesso/${IDSetting}`);
-        
-        if (!response.ok) {
-            throw new Error(`Errore nella chiamata: ${response.status}`);
-        }
-        
-        return await response.json();
-    } catch (error) {
-        console.error("Errore durante il recupero dei letti liberi:", error);
-        return null; // Oppure gestisci l'errore restituendo un array vuoto []
-    }
-}
-
 
 
 function assegnaStato(
