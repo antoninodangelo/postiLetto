@@ -867,6 +867,10 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
     reparto.className = "reparto";
     nomeStruttura = nomeStruttura || nome;
 
+    // 🔥 I CONTATORI DEVONO ESSERE QUI
+    let contatoreUomini = 0;
+    let contatoreDonne = 0;
+
     // Pulsanti + / -
     const pulsantiLetto = livelloAccesso >= 50 ? `
         <svg width="20" height="20" viewBox="0 0 20 20"
@@ -899,25 +903,29 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
     ` : "";
    
     let containerLettiDx='letti-container'; 
+    if (IDSetting === 7) {
+        containerLettiDx = 'letti-container-dx';
+    }
 
-if (IDSetting === 7) {
-    containerLettiDx = 'letti-container-dx';
-}
-reparto.innerHTML = `
-    <h6>${nome}</h6>
-    <div class="${containerLettiDx}"></div>
-    ${pulsantiLetto}
-`;
+    reparto.innerHTML = `
+        <h6>${nome}</h6>
+        <div class="${containerLettiDx}"></div>
+        ${pulsantiLetto}
+        <div id="contatori-${IDSetting}">
+            posti letto liberi : ${contatoreUomini} uomini, ${contatoreDonne} donne
+        </div>
+    `;
 
-const containerLetti = reparto.querySelector(`.${containerLettiDx}`);      
-   
+    const containerLetti = reparto.querySelector(`.${containerLettiDx}`);
+    const contatoriDiv = reparto.querySelector(`#contatori-${IDSetting}`);
 
     // Carica letti
     fetch(`/territorio/letti/${IDSetting}`)
         .then(r => r.json())
-        .then(data => {            
-            data.forEach(letto => {
-
+        .then(data => {
+            contatoreDonne=0;
+            contatoreUomini=0;                   
+            data.forEach(letto => {                
                 const { statoLetto, bgcolor, icona, labelStato } = assegnaStato(
                     letto.IDStatoLetto,
                     letto.dataInserimento,
@@ -930,7 +938,6 @@ const containerLetti = reparto.querySelector(`.${containerLettiDx}`);
 
                 const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
-                // SVG molto più grande e leggibile
                 svg.setAttribute("viewBox", "0 0 50 50");
                 svg.setAttribute("width", "50");
                 svg.setAttribute("height", "50");
@@ -945,68 +952,69 @@ const containerLetti = reparto.querySelector(`.${containerLettiDx}`);
                     : "Inserisci";
 
                 let sessoLetto = letto.sessoPz || "";
-                if (sessoLetto === 1) {
+                if (sessoLetto === 1) {                    
                     sessoLetto = "F";
                     svg.style.setProperty("--bg-letto-dinamico", "#ff4fa3");
                 } else if (sessoLetto === 2) {
+                    
                     sessoLetto = "M";
                     svg.style.setProperty("--bg-letto-dinamico", "#5653de");
                 }
-                // SVG migliorato
+              
+                if (sessoLetto === "F" && letto.IDPaziente === null) contatoreDonne++;
+                 if (sessoLetto === "M" && letto.IDPaziente === null) contatoreUomini++;
+
                 svg.innerHTML = `
-    <g class="gestisciLetto">
-        <text x="25" y="10" font-size="11" font-weight="600"
-              text-anchor="middle" fill="#000">${sessoLetto}</text>
+                    <g class="gestisciLetto">
+                        <text x="25" y="10" font-size="11" font-weight="600"
+                              text-anchor="middle" fill="#000">${sessoLetto}</text>
 
-        <text x="25" y="18" font-size="9" font-weight="700"
-              text-anchor="middle" fill="#222">
-            L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
-        </text>
+                        <text x="25" y="18" font-size="9" font-weight="700"
+                              text-anchor="middle" fill="#222">
+                            L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
+                        </text>
 
-        <rect x="14" y="22" width="12" height="4"
-              rx="2" fill="var(--bg-letto-dinamico)"></rect>
+                        <rect x="14" y="22" width="12" height="4"
+                              rx="2" fill="var(--bg-letto-dinamico)"></rect>
 
-        <rect x="14" y="29" width="22" height="6"
-              rx="3" fill="var(--bg-letto-dinamico)"></rect>
+                        <rect x="14" y="29" width="22" height="6"
+                              rx="3" fill="var(--bg-letto-dinamico)"></rect>
 
-        <text x="25" y="48" font-size="12" font-weight="800"
-              text-anchor="middle" fill="#333" class="assegnaPz">
-            ${statoLetto}
-        </text>
+                        <text x="25" y="48" font-size="12" font-weight="800"
+                              text-anchor="middle" fill="#333" class="assegnaPz">
+                            ${statoLetto}
+                        </text>
 
-        <text x="25" y="55" font-size="6" font-weight="800"
-              text-anchor="middle" fill="#555">
-            ${labelStato}
-        </text>
-    </g>
-`;
+                        <text x="25" y="55" font-size="6" font-weight="800"
+                              text-anchor="middle" fill="#555">
+                            ${labelStato}
+                        </text>
+                    </g>
+                `;
 
                 containerLetti.appendChild(svg);
-                
 
-                // CLICK SUL LETTUCCIO → gestione letto
                 svg.querySelector(".gestisciLetto").addEventListener("click", (event) => {
                     event.stopPropagation();
                     attivaModal(null, letto.IDPostoLetto, IDSetting, "modale");
-                    toggleLetto(svg, reparto);
                 });
 
-                // CLICK SULLA LABEL STATO → inserimento paziente
                 svg.querySelector(".assegnaPz").addEventListener("click", (event) => {
                     event.stopPropagation();
                     assegnaPaziente(event, letto.IDPostoLetto, IDSetting);
-                    toggleLetto(svg, reparto);
                 });
-
-                
             });
 
+            // 🔥 AGGIORNO I CONTATORI DOPO IL CICLO
+            contatoriDiv.innerText =
+                `posti letto liberi : ${contatoreUomini} uomini, ${contatoreDonne} donne`;            
             aggiornaContatori(reparto);
         })
         .catch(err => console.error("Errore:", err));
 
     return reparto;
 }
+
 
 
 function assegnaStato(
