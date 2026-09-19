@@ -233,14 +233,14 @@ let datiForm = {
 
 async function caricaDati() {
     await caricaSetting(IDUtente, livelloAccesso);
-    await caricaSetting(IDUtente, livelloAccesso, 7);
+    await caricaSetting(IDUtente, livelloAccesso,7);
     caricaStatoLetti();
     caricaZona();
     generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
     //generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
-    if (livelloAccesso >= 50) {
-        tabellaBoarding();
-    }
+    if(livelloAccesso>=50){ 
+       tabellaBoarding();
+    } 
 
     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
@@ -719,7 +719,7 @@ function generaFormDinamico(config, storage, idFormHTML) {
 
             const data = await response.json();
             await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso, 7);
+            await caricaSetting(IDUtente, livelloAccesso,7);
             chiudiModal(nomeModale);
             generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
             //generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
@@ -736,36 +736,37 @@ function generaFormDinamico(config, storage, idFormHTML) {
 async function caricaSetting(IDUtente, livelloAccesso, idSetting = null) {
     try {
         const response = await fetch(`/territorio/settingUtente/${IDUtente}/${livelloAccesso}`);
-        let reparto = await response.json();
+let reparto = await response.json();
 
-        let gancioBoarding = 'dashboardReparti';
-        let repartoBoarding = null;
+let gancioBoarding = 'dashboardReparti';
+let repartoBoarding = null;
+// Se è richiesto il boarding, filtra
+if (idSetting !== null && idSetting !== undefined) {
+    repartoBoarding = reparto.filter(r => r.IDSetting === 7);
+     gancioBoarding = 'boarding';
+}else{
+     repartoBoarding = reparto.filter(r => r.IDSetting !== 7);
+    }
+    reparto = repartoBoarding;
+    console.log('reparto boarding', reparto);
+const aggancio = document.getElementById(gancioBoarding);
+if (!aggancio) {
+    console.error("Elemento non trovato:", gancioBoarding);
+    return;
+}
 
-        if (idSetting !== null && idSetting !== undefined) {
-            repartoBoarding = reparto.filter(r => r.IDSetting === 7);
-            gancioBoarding = 'boarding';
-        } else {
-            repartoBoarding = reparto.filter(r => r.IDSetting !== 7);
-        }
+aggancio.innerHTML = "";
 
-        reparto = repartoBoarding;
 
-        const aggancio = document.getElementById(gancioBoarding);
-        if (!aggancio) {
-            console.error("Elemento non trovato:", gancioBoarding);
-            return;
-        }
-
-        aggancio.innerHTML = "";
+        // Lista IDSetting senza duplicati
+        settingUtente = [...new Set(reparto.map(s => s.IDSetting))];
 
         // Raggruppamento per azienda
         const aziendeMap = new Map();
 
-        // 🔥 1) Prepara tutte le promesse dei reparti
-        const promesseReparti = reparto.map(async setting => {
+        reparto.forEach(setting => {
             const nomeAzienda = setting.nomeAzienda || "Senza azienda";
 
-            // Se l'azienda non esiste ancora → crea box
             if (!aziendeMap.has(nomeAzienda)) {
                 const aziendaBox = document.createElement('div');
                 aziendaBox.className = "riquadro-azienda";
@@ -779,38 +780,21 @@ async function caricaSetting(IDUtente, livelloAccesso, idSetting = null) {
                 titolo.textContent = nomeAzienda;
                 titolo.style.marginBottom = "8px";
                 aziendaBox.appendChild(titolo);
-
                 aziendeMap.set(nomeAzienda, aziendaBox);
                 aggancio.appendChild(aziendaBox);
             }
 
             const boxAzienda = aziendeMap.get(nomeAzienda);
 
-            // 🔥 creaReparto è async → Promise
-            const repartoDom = await creaReparto(
-                setting.setting,
-                setting.IDSetting,
-                livelloAccesso,
-                nomeAzienda
+            boxAzienda.appendChild(
+                creaReparto(setting.setting, setting.IDSetting, livelloAccesso, nomeAzienda)
             );
-
-            return { boxAzienda, repartoDom };
-        });
-
-        // 🔥 2) Aspetta che TUTTI i reparti siano pronti
-        const risultati = await Promise.all(promesseReparti);
-
-        // 🔥 3) Append finale
-        risultati.forEach(({ boxAzienda, repartoDom }) => {
-            boxAzienda.appendChild(repartoDom);
         });
 
     } catch (error) {
-        console.error('Errore nella routine caricaSetting:', error);
+        console.error('Errore nella routine caricasetting:', error);
     }
 }
-
-
 
 
 
@@ -877,19 +861,18 @@ window.assegnaPaziente = function assegnaPaziente(event, IDPostoLetto, IDSetting
 };
 
 
-async function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
+function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
 
     const reparto = document.createElement("div");
     reparto.className = "reparto";
     nomeStruttura = nomeStruttura || nome;
 
-    // 🔥 I CONTATORI DEVONO ESSERE QUI
     let contatoreUomini = 0;
     let contatoreDonne = 0;
 
     let containerLettiDx = (IDSetting === 7) ? "letti-container-dx" : "letti-container";
 
-  const pulsantiLetto = livelloAccesso >= 50 ? `
+    const pulsantiLetto = livelloAccesso >= 50 ? `
         <svg width="20" height="20" viewBox="0 0 20 20"
              class="piu svg-button" data-id-setting="${IDSetting}">
             <g transform="scale(1.4)">
@@ -918,27 +901,29 @@ async function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
             </g>
         </svg>
     ` : "";
-   
-    let containerLettiDx='letti-container'; 
 
-if (IDSetting === 7) {
-    containerLettiDx = 'letti-container-dx';
-}
-reparto.innerHTML = `
-    <h6>${nome}</h6>
-    <div class="${containerLettiDx}"></div>
-    ${pulsantiLetto}
-`;
+    reparto.innerHTML = `
+        <h6>${nome}</h6>
+        <div class="${containerLettiDx}"></div>
+        ${pulsantiLetto}
+        <div id="contatori-${IDSetting}">
+            posti letto liberi : 0 uomini, 0 donne
+        </div>
+    `;
 
-const containerLetti = reparto.querySelector(`.${containerLettiDx}`);      
-   
+    const containerLetti = reparto.querySelector(`.${containerLettiDx}`);
+    const contatoriDiv = reparto.querySelector(`#contatori-${IDSetting}`);
 
-    // Carica letti
+    // Carica letti (sincrono dal punto di vista della funzione: fetch è async ma non cambia il return)
     fetch(`/territorio/letti/${IDSetting}`)
         .then(r => r.json())
-        .then(data => {            
-            data.forEach(letto => {
+        .then(data => {
+            contatoreDonne = 0;
+            contatoreUomini = 0;
 
+            const fragment = document.createDocumentFragment();
+
+            data.forEach(letto => {
                 const { statoLetto, bgcolor, icona, labelStato } = assegnaStato(
                     letto.IDStatoLetto,
                     letto.dataInserimento,
@@ -950,20 +935,14 @@ const containerLetti = reparto.querySelector(`.${containerLettiDx}`);
                 );
 
                 const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-
-                // SVG molto più grande e leggibile
                 svg.setAttribute("viewBox", "0 0 50 50");
                 svg.setAttribute("width", "50");
                 svg.setAttribute("height", "50");
 
-        svg.dataset.IDPostoLetto = letto.IDPostoLetto;
-        svg.dataset.IDSetting = IDSetting;
+                svg.dataset.IDPostoLetto = letto.IDPostoLetto;
+                svg.dataset.IDSetting = IDSetting;
 
-        svg.style.setProperty("--bg-letto-dinamico", bgcolor || "#e0e0e0");
-
-        const pzLabel = letto.IDPaziente
-            ? `${letto.nomePaziente[0]} ${letto.cognomePaziente[0]}`
-            : "Inserisci";
+                svg.style.setProperty("--bg-letto-dinamico", bgcolor || "#e0e0e0");
 
                 let sessoLetto = letto.sessoPz || "";
                 if (sessoLetto === 1) {
@@ -973,61 +952,65 @@ const containerLetti = reparto.querySelector(`.${containerLettiDx}`);
                     sessoLetto = "M";
                     svg.style.setProperty("--bg-letto-dinamico", "#5653de");
                 }
-                // SVG migliorato
+
+                if (sessoLetto === "F" && letto.IDPaziente === null) contatoreDonne++;
+                if (sessoLetto === "M" && letto.IDPaziente === null) contatoreUomini++;
+
                 svg.innerHTML = `
-    <g class="gestisciLetto">
-        <text x="25" y="10" font-size="11" font-weight="600"
-              text-anchor="middle" fill="#000">${sessoLetto}</text>
+                    <g class="gestisciLetto">
+                        <text x="25" y="10" font-size="11" font-weight="600"
+                              text-anchor="middle" fill="#000">${sessoLetto}</text>
 
-        <text x="25" y="18" font-size="9" font-weight="700"
-              text-anchor="middle" fill="#222">
-            L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
-        </text>
+                        <text x="25" y="18" font-size="9" font-weight="700"
+                              text-anchor="middle" fill="#222">
+                            L${letto.numeroLetto || ""}/S${letto.numeroStanza || ""}
+                        </text>
 
-        <rect x="14" y="22" width="12" height="4"
-              rx="2" fill="var(--bg-letto-dinamico)"></rect>
+                        <rect x="14" y="22" width="12" height="4"
+                              rx="2" fill="var(--bg-letto-dinamico)"></rect>
 
-        <rect x="14" y="29" width="22" height="6"
-              rx="3" fill="var(--bg-letto-dinamico)"></rect>
+                        <rect x="14" y="29" width="22" height="6"
+                              rx="3" fill="var(--bg-letto-dinamico)"></rect>
 
-        <text x="25" y="48" font-size="12" font-weight="800"
-              text-anchor="middle" fill="#333" class="assegnaPz">
-            ${statoLetto}
-        </text>
+                        <text x="25" y="48" font-size="12" font-weight="800"
+                              text-anchor="middle" fill="#333" class="assegnaPz">
+                            ${statoLetto}
+                        </text>
 
-        <text x="25" y="55" font-size="6" font-weight="800"
-              text-anchor="middle" fill="#555">
-            ${labelStato}
-        </text>
-    </g>
-`;
+                        <text x="25" y="55" font-size="6" font-weight="800"
+                              text-anchor="middle" fill="#555">
+                            ${labelStato}
+                        </text>
+                    </g>
+                `;
 
-                containerLetti.appendChild(svg);
-                
+                fragment.appendChild(svg);
 
-                // CLICK SUL LETTUCCIO → gestione letto
                 svg.querySelector(".gestisciLetto").addEventListener("click", (event) => {
                     event.stopPropagation();
                     attivaModal(null, letto.IDPostoLetto, IDSetting, "modale");
-                    toggleLetto(svg, reparto);
                 });
 
-                // CLICK SULLA LABEL STATO → inserimento paziente
                 svg.querySelector(".assegnaPz").addEventListener("click", (event) => {
                     event.stopPropagation();
                     assegnaPaziente(event, letto.IDPostoLetto, IDSetting);
-                    toggleLetto(svg, reparto);
                 });
-
-                
             });
+
+            containerLetti.appendChild(fragment);
+
+            contatoriDiv.innerText =
+                `posti letto liberi : ${contatoreUomini} uomini, ${contatoreDonne} donne`;
 
             aggiornaContatori(reparto);
         })
-        .catch(err => console.error("Errore:", err));
+        .catch(err => console.error("Errore nella routine caricasetting:", err));
 
+    // IMPORTANTISSIMO: ritorna SUBITO un Node, non una Promise
     return reparto;
 }
+
+
 
 
 function assegnaStato(
@@ -1140,19 +1123,15 @@ document.addEventListener('click', async (e) => {
     const btnMeno = e.target.closest('.meno');
 
     if (btnPiu) {
+        /// devo cambiare 1 con l' setting
 
-        let sesso = prompt("M o F?").toUpperCase();
-        if (!["M", "F"].includes(sesso)) alert("Inserisci solo M o F");
-        sesso = sesso === "F" ? 1 : 2;
-
-
-        const response = await fetch(`/aggiuntaBoarding/${btnPiu.dataset.idSetting}/${sesso}`);
+        const response = await fetch(`/aggiuntaBoarding/${btnPiu.dataset.idSetting}`);
         if (!response.ok) throw new Error("non ho ricevuto i dati del letto");
 
         const dati = await response.json();
 
         await caricaSetting(IDUtente, livelloAccesso);
-        await caricaSetting(IDUtente, livelloAccesso, 7);
+        await caricaSetting(IDUtente, livelloAccesso,7);
     }
 
     if (btnMeno) {
@@ -1173,7 +1152,7 @@ document.addEventListener('click', async (e) => {
             }
 
             await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso, 7);
+            await caricaSetting(IDUtente, livelloAccesso,7);
 
         } catch (err) {
             console.error(err);
@@ -1192,7 +1171,7 @@ document.addEventListener('click', async (e) => {
             await fetch(`/territorio/cancellaInserimento/${idPaziente}/${idPostoLetto}`);
             //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
             await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso, 7);
+            await caricaSetting(IDUtente, livelloAccesso,7);
             caricaStatoLetti();
             caricaZona();
             generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
@@ -1213,7 +1192,7 @@ document.addEventListener('click', async (e) => {
             await fetch(`/territorio/dimettiPaziente/${idPaziente}/${idPostoLetto}/${livelloAccesso}/${IDUtente}`);
             //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
             await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso, 7);
+            await caricaSetting(IDUtente, livelloAccesso,7);
             caricaStatoLetti();
             caricaZona();
             generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
@@ -1242,13 +1221,13 @@ document.addEventListener('click', async (e) => {
         if (controllo) {
             await fetch(`/territorio/aggiornaDataTrasf/${idPaziente}/${idLettoDestinazione}/${IDUtente}/${idPostoLetto}/${idSettigDestinazione}`);
             await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso, 7);
+            await caricaSetting(IDUtente, livelloAccesso,7);
             caricaStatoLetti();
             caricaZona();
             generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
             generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
             tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settingUtente, generaTabellaPazienti);
-
+            
         }
         else {
             alert('TRASFERIMENTO ANNULLATO');
