@@ -9,6 +9,8 @@ import { gestisciFormSetting } from "./tabellaInsSetting.js";
 import { tabellaBoarding } from "./tabellaBoarding.js";
 
 
+const oggi = Date.now(); // Prende il timestamp attuale in millisecondi
+
 let setting = [];
 let settingUtente = [];
 let settingsZona = [];
@@ -85,7 +87,8 @@ const configurazioneFormPz = [
         label: 'ID Letto:',
         type: 'text',
         required: false,
-        disabled: true
+        disabled: false,
+        visibile:false
     },
     {
         id: 'nomePaziente',
@@ -102,11 +105,21 @@ const configurazioneFormPz = [
         disabled: false
     },
     {
+        id: 'dataDimissione',
+        label: 'Data di Presunta dimissione:',
+        type: 'date',
+        required: true,
+        disabled: false,
+        max:new Date(oggi + 86400000*30).toISOString().split('T')[0],
+        min:new Date(oggi + 86400000).toISOString().split('T')[0]
+    },
+    {
         id: 'dataNascita',
         label: 'Data di nascita:',
         type: 'date',
         required: true,
-        disabled: false
+        disabled: false,
+        max:new Date(oggi + 86400000).toISOString().split('T')[0],
     },
 
     {
@@ -137,7 +150,7 @@ const configurazioneFormPz = [
         id: 'problemiAperti',
         label: 'Problemi aperti',
         type: 'text',
-        required: true,
+        required: false,
         disabled: false
     }
 ];
@@ -145,6 +158,7 @@ const datiformPz = {
     IDPostoLetto: null,
     nomePaziente: null,
     cognomePaziente: null,
+    dataDimissione:null,
     dataNascita: null,
     sesso: null,
     zona: null,
@@ -182,7 +196,8 @@ const configurazioneForm = [
         label: 'Tipo Letto',
         type: 'select',
         options: ['LETTO', 'BARELLA', 'POLTRONA'],
-        values: [1, 2, 3]
+        values: [1, 2, 3],
+         visibile: false
     },
     {
         id: 'sessoPz',
@@ -196,7 +211,7 @@ const configurazioneForm = [
         label: 'Numero Stanza',
         type: 'select',
         options: [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15],
-        values: [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15] // Valori corrispondenti da inviare al server
+        values: [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15] 
     },
     {
         id: 'numeroLetto',
@@ -209,7 +224,8 @@ const configurazioneForm = [
         id: 'note',
         label: 'Note Extra',
         type: 'textarea',
-        placeholder: 'Inserisci eventuali note cliniche o logistiche...'
+        placeholder: 'Inserisci eventuali note cliniche o logistiche...',
+        required:false
     },
 
 ];
@@ -230,17 +246,143 @@ let datiForm = {
 };
 
 
+function generaFormDinamico(config, storage, idFormHTML) {
+    const formElement = document.getElementById(idFormHTML);
+    formElement.classList.add("form-compact");
+    if (!formElement) return console.error("Form non trovato nell'HTML");
+    formElement.innerHTML = ''; // Pulisce il form da vecchi elementi
+    formElement.onsubmit = null;
+    formElement.dataset.formType = config.formType;
+    if (livelloAccesso === 1) {
+        config = config.filter(el => el.id !== 'dataTrasf');
+    }
+    config.forEach(campo => {
+        // Crea il contenitore del gruppo (form-group / mb-3)
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mb-3 d-flex flex-column text-start';
+        // Crea la Label
+        const label = document.createElement('label');
+        label.htmlFor = campo.id;
+        label.className = 'form-label fw-bold mb-1';
+        label.innerText = campo.label;
+        if (campo.visibile === false) label.style.display = 'none';
+        wrapper.appendChild(label);
+        // Variabile di supporto per l'elemento di input specifico
+        let input;
+
+        // Gestione dei diversi tipi di campo (Select, Textarea o Input standard)
+        if (campo.type === 'select') {
+            input = document.createElement('select');
+            campo.options.forEach(opzione => {
+                const opt = document.createElement('option');
+                opt.value = campo.values ? campo.values[campo.options.indexOf(opzione)] : opzione; // Usa il valore corrispondente se definito, altrimenti l'opzione stessa
+                opt.innerText = opzione;
+                if (storage[campo.id] == opt.value) opt.selected = true;
+                input.appendChild(opt);
+            });
+            if (campo.required) input.required = true;
+            if (campo.visibile === false) input.style.display = 'none';
+
+        } else if (campo.type === 'textarea') {
+            input = document.createElement('textarea');
+            if (campo.placeholder) input.placeholder = campo.placeholder;
+            input.rows = 3;
+        } else {
+            input = document.createElement('input');
+            input.type = campo.type;
+            if (campo.placeholder) input.placeholder = campo.placeholder;
+            if (campo.required) input.required = true;
+            if (campo.disabled) input.disabled = true;
+            if (campo.visibile === false) input.style.display = 'none';  
+            if (campo.min) input.min = campo.min;
+            if (campo.max) input.max = campo.max;       
+            storage[campo.id] = storage[campo.id] || ''; // Inizializza il valore nello storage se non presente
+        }
+
+        // Proprietà comuni a tutti i campi
+        input.id = campo.id;
+        input.className = 'form-control'; 
+
+
+        // Sincronizza il valore iniziale dall'oggetto di appoggio
+
+        input.value = storage[campo.id] ?? "";
+
+        // EVENTO INPUT/CHANGE: Aggiorna l'oggetto di appoggio ad ogni digitazione
+
+        input.addEventListener('change', e => {
+            storage[campo.id] = e.target.value;
+        });
+        // Appende l'input al wrapper e il wrapper al form principale
+        wrapper.appendChild(input);
+
+        formElement.appendChild(wrapper);
+    });
+
+
+    // Aggiunge un pulsante di invio finale per il form
+    const btnInvia = document.createElement('button');
+    btnInvia.type = 'submit';
+    btnInvia.className = 'btn btn-primary mt-2 w-100';
+    btnInvia.innerText = 'Salva Dati';
+    formElement.appendChild(btnInvia);
+
+    // Gestione del submit finale del form
+    formElement.onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+            let endpoint = "";
+            let nomeModale = "";
+            let payload = storage;
+
+            const tipoForm = formElement.dataset.formType;
+
+            switch (tipoForm) {
+                case "updateLetto":
+                    endpoint = "/territorio/salvaDatiLetto";
+                    nomeModale = 'modalLetto';
+                    break;
+
+                case "updatePaziente":
+                    endpoint = `/territorio/salvaDatiPaziente/${livelloAccesso}`;
+                    nomeModale = 'insPaziente';
+                    break;
+            }
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            await caricaSetting(IDUtente, livelloAccesso);
+            await caricaSetting(IDUtente, livelloAccesso, 7);
+            chiudiModal(nomeModale);
+            generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
+            
+            //generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
+            generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
+            generaTabellaPostiChiusi(IDUtente, 'lettiChiusi');
+            //tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settingUtente, generaTabellaPazienti);
+
+        } catch (error) {
+            console.error('Errore durante il salvataggio:', error);
+        }
+    };
+
+}
 
 async function caricaDati() {
     await caricaSetting(IDUtente, livelloAccesso);
-    await caricaSetting(IDUtente, livelloAccesso,7);
+    await caricaSetting(IDUtente, livelloAccesso, 7);
     caricaStatoLetti();
     caricaZona();
     generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
     //generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
-    if(livelloAccesso>=50){ 
-       tabellaBoarding();
-    } 
+    if (livelloAccesso >= 50) {
+        tabellaBoarding();
+    }
 
     generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
     generaTabellaPostiChiusi(IDUtente, 'lettiChiusi', livelloAccesso);
@@ -299,27 +441,7 @@ function generaTabellaLettiOccupati(idDivAggancio, livelloAccesso) {
             );
         });
 }
-/*   function generaTabellaPazientiDimessi(giorni, IDUtente, livelloAccesso) {
-    const container = document.getElementById('tabellaRisultati');
-    if (!container) return console.error("Div non trovata:", 'tabellaRisultati');
-    if (container) {
-        container.innerHTML = ""; // pulizia
-    }
-    fetch(`/pazientiDimessi/${giorni}/${IDUtente}/${livelloAccesso}`)
-        .then(res => res.json())
-        .then(dati => {
-            creaTabellaQuery(
-                dati,
-                [
-                    { label: "Sesso", key: "sesso" },
-                    { label: "Totale", key: "totale" }
-                ],
-                "tabellaRisultati",
-                `Pazienti trasferiti ultimi ${giorni} giorni`
-            );
-        });
 
-}    */
 function generaTabellaPostiChiusi(IDUtente, idDivAggancio, livelloAccesso) {
 
     fetch(`/numeroLettiChiusi/${IDUtente}/${livelloAccesso}`)
@@ -609,153 +731,30 @@ async function dimettiPaziente(IDPaziente, IDPostoLetto, livelloAccesso, IDUtent
  * @param {Object} storage - L'oggetto dove salvare i dati inseriti
  * @param {string} idFormHTML - L'ID del form HTML di destinazione
  */
-function generaFormDinamico(config, storage, idFormHTML) {
-    const formElement = document.getElementById(idFormHTML);
-    formElement.classList.add("form-compact");
-    if (!formElement) return console.error("Form non trovato nell'HTML");
-    formElement.innerHTML = ''; // Pulisce il form da vecchi elementi
-    formElement.onsubmit = null;
-    formElement.dataset.formType = config.formType;
-    if (livelloAccesso === 1) {
-        config = config.filter(el => el.id !== 'dataTrasf');
-    }
-    config.forEach(campo => {
-        // Crea il contenitore del gruppo (form-group / mb-3)
-        const wrapper = document.createElement('div');
-        wrapper.className = 'mb-3 d-flex flex-column text-start';
-        // Crea la Label
-        const label = document.createElement('label');
-        label.htmlFor = campo.id;
-        label.className = 'form-label fw-bold mb-1';
-        label.innerText = campo.label;
-        if (campo.visibile === false) label.style.display = 'none';
-        wrapper.appendChild(label);
-        // Variabile di supporto per l'elemento di input specifico
-        let input;
 
-        // Gestione dei diversi tipi di campo (Select, Textarea o Input standard)
-        if (campo.type === 'select') {
-            input = document.createElement('select');
-            campo.options.forEach(opzione => {
-                const opt = document.createElement('option');
-                opt.value = campo.values ? campo.values[campo.options.indexOf(opzione)] : opzione; // Usa il valore corrispondente se definito, altrimenti l'opzione stessa
-                opt.innerText = opzione;
-                if (storage[campo.id] == opt.value) opt.selected = true;
-                input.appendChild(opt);
-            });
-            if (campo.required) input.required = true;
-            if (campo.visibile === false) input.style.display = 'none';
-
-        } else if (campo.type === 'textarea') {
-            input = document.createElement('textarea');
-            if (campo.placeholder) input.placeholder = campo.placeholder;
-            input.rows = 3;
-        } else if (campo.type === 'data') { }
-        else {
-            input = document.createElement('input');
-            input.type = campo.type;
-            if (campo.placeholder) input.placeholder = campo.placeholder;
-            if (campo.required) input.required = true;
-            if (campo.disabled) input.disabled = true;
-            if (campo.visibile === false) input.style.display = 'none';
-            storage[campo.id] = storage[campo.id] || ''; // Inizializza il valore nello storage se non presente
-        }
-
-        // Proprietà comuni a tutti i campi
-        input.id = campo.id;
-        input.className = 'form-control'; // Classe CSS standard (ottima per Bootstrap)
-
-
-        // Sincronizza il valore iniziale dall'oggetto di appoggio
-
-        input.value = storage[campo.id] ?? "";
-
-        // EVENTO INPUT/CHANGE: Aggiorna l'oggetto di appoggio ad ogni digitazione
-
-        input.addEventListener('change', e => {
-            storage[campo.id] = e.target.value;
-        });
-        // Appende l'input al wrapper e il wrapper al form principale
-        wrapper.appendChild(input);
-
-        formElement.appendChild(wrapper);
-    });
-
-
-    // Aggiunge un pulsante di invio finale per il form
-    const btnInvia = document.createElement('button');
-    btnInvia.type = 'submit';
-    btnInvia.className = 'btn btn-primary mt-2 w-100';
-    btnInvia.innerText = 'Salva Dati';
-    formElement.appendChild(btnInvia);
-
-    // Gestione del submit finale del form
-    formElement.onsubmit = async (e) => {
-        e.preventDefault();
-        try {
-            let endpoint = "";
-            let nomeModale = "";
-            let payload = storage;
-
-            const tipoForm = formElement.dataset.formType;
-
-            switch (tipoForm) {
-                case "updateLetto":
-                    endpoint = "/territorio/salvaDatiLetto";
-                    nomeModale = 'modalLetto';
-                    break;
-
-                case "updatePaziente":
-                    endpoint = `/territorio/salvaDatiPaziente/${livelloAccesso}`;
-                    nomeModale = 'insPaziente';
-                    break;
-            }
-
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
-            await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso,7);
-            chiudiModal(nomeModale);
-            generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
-            //generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
-            generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
-            generaTabellaPostiChiusi(IDUtente, 'lettiChiusi');
-
-
-        } catch (error) {
-            console.error('Errore durante il salvataggio:', error);
-        }
-    };
-
-}
 async function caricaSetting(IDUtente, livelloAccesso, idSetting = null) {
     try {
         const response = await fetch(`/territorio/settingUtente/${IDUtente}/${livelloAccesso}`);
-let reparto = await response.json();
+        let reparto = await response.json();
 
-let gancioBoarding = 'dashboardReparti';
-let repartoBoarding = null;
-// Se è richiesto il boarding, filtra
-if (idSetting !== null && idSetting !== undefined) {
-    repartoBoarding = reparto.filter(r => r.IDSetting === 7);
-     gancioBoarding = 'boarding';
-}else{
-     repartoBoarding = reparto.filter(r => r.IDSetting !== 7);
-    }
-    reparto = repartoBoarding;
-    console.log('reparto boarding', reparto);
-const aggancio = document.getElementById(gancioBoarding);
-if (!aggancio) {
-    console.error("Elemento non trovato:", gancioBoarding);
-    return;
-}
+        let gancioBoarding = 'dashboardReparti';
+        let repartoBoarding = null;
+        // Se è richiesto il boarding, filtra
+        if (idSetting !== null && idSetting !== undefined) {
+            repartoBoarding = reparto.filter(r => r.IDSetting === 7);
+            gancioBoarding = 'boarding';
+        } else {
+            repartoBoarding = reparto.filter(r => r.IDSetting !== 7);
+        }
+        reparto = repartoBoarding;
+        
+        const aggancio = document.getElementById(gancioBoarding);
+        if (!aggancio) {
+            console.error("Elemento non trovato:", gancioBoarding);
+            return;
+        }
 
-aggancio.innerHTML = "";
+        aggancio.innerHTML = "";
 
 
         // Lista IDSetting senza duplicati
@@ -957,7 +956,7 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
                 if (sessoLetto === "M" && letto.IDPaziente === null) contatoreUomini++;
 
                 svg.innerHTML = `
-                    <g class="gestisciLetto">
+                    <g class="gestisciLetto" data-id-setting="${IDSetting}" data-id-postoLetto="${letto.IDPostoLetto}">
                         <text x="25" y="10" font-size="11" font-weight="600"
                               text-anchor="middle" fill="#000">${sessoLetto}</text>
 
@@ -988,6 +987,9 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
 
                 svg.querySelector(".gestisciLetto").addEventListener("click", (event) => {
                     event.stopPropagation();
+                  alert(event.currentTarget.dataset.idPostoletto);
+                  datiForm.IDSetting=event.currentTarget.dataset.idSetting;
+                  datiForm.IDPostoLetto= event.currentTarget.dataset.idPostoletto
                     attivaModal(null, letto.IDPostoLetto, IDSetting, "modale");
                 });
 
@@ -1131,7 +1133,7 @@ document.addEventListener('click', async (e) => {
         const dati = await response.json();
 
         await caricaSetting(IDUtente, livelloAccesso);
-        await caricaSetting(IDUtente, livelloAccesso,7);
+        await caricaSetting(IDUtente, livelloAccesso, 7);
     }
 
     if (btnMeno) {
@@ -1152,7 +1154,7 @@ document.addEventListener('click', async (e) => {
             }
 
             await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso,7);
+            await caricaSetting(IDUtente, livelloAccesso, 7);
 
         } catch (err) {
             console.error(err);
@@ -1171,7 +1173,7 @@ document.addEventListener('click', async (e) => {
             await fetch(`/territorio/cancellaInserimento/${idPaziente}/${idPostoLetto}`);
             //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
             await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso,7);
+            await caricaSetting(IDUtente, livelloAccesso, 7);
             caricaStatoLetti();
             caricaZona();
             generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
@@ -1192,7 +1194,7 @@ document.addEventListener('click', async (e) => {
             await fetch(`/territorio/dimettiPaziente/${idPaziente}/${idPostoLetto}/${livelloAccesso}/${IDUtente}`);
             //////////////DEVO INSERIRE LE FUNZIONI CHE CARICANO I LETTI E IL RESTO//////////
             await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso,7);
+            await caricaSetting(IDUtente, livelloAccesso, 7);
             caricaStatoLetti();
             caricaZona();
             generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
@@ -1221,13 +1223,13 @@ document.addEventListener('click', async (e) => {
         if (controllo) {
             await fetch(`/territorio/aggiornaDataTrasf/${idPaziente}/${idLettoDestinazione}/${IDUtente}/${idPostoLetto}/${idSettigDestinazione}`);
             await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso,7);
+            await caricaSetting(IDUtente, livelloAccesso, 7);
             caricaStatoLetti();
             caricaZona();
             generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
             generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
             tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settingUtente, generaTabellaPazienti);
-            
+
         }
         else {
             alert('TRASFERIMENTO ANNULLATO');

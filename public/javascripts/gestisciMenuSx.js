@@ -16,7 +16,7 @@ function creaMenuSx(
     const menuSx = document.getElementById(gancio);
     menuSx.innerHTML = "";
 
-    // 🔥 Definisco il listener (una sola volta)
+   
     if (!window._menuListener) {
 
         window._menuListener = async function(e) {
@@ -24,6 +24,7 @@ function creaMenuSx(
             if (e.target.classList.contains('lettiOccupati')) {
                 document.getElementById('dashboardReparti').innerHTML = "";
                 document.getElementById('tabellaDimissioni').innerHTML = "";
+                document.getElementById('tabellaTrasf').innerHTML = "";
                 await generaTabellaLettiOccupati('tabellaTrasf', user.IDPubblico);
 
             }
@@ -40,7 +41,8 @@ function creaMenuSx(
             if (e.target.classList.contains('lettiLiberi')) {
                 document.getElementById('dashboardReparti').innerHTML = "";
                 document.getElementById('tabellaTrasf').innerHTML = "";
-                gestionePiano('dashboardReparti', user.IDPubblico, null, user.IDZona);
+                document.getElementById('tabellaDimissioni').innerHTML = "";  
+                //gestionePiano('dashboardReparti', user.IDPubblico, null, user.IDZona);
             }
 
             if (e.target.classList.contains('gestioneTerritorio')) {
