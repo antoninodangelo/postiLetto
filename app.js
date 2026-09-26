@@ -7,11 +7,12 @@ import { fileURLToPath } from 'url';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from "passport-local";
 import  pool  from './config/db.js';
-
+import postiliberiRouter from './routes/postiliberi.js';
 import bcrypt from "bcryptjs";
 import indexRouter from './routes/index.js';
 import usersRouter from './routes/users.js';
 import territorioRouter from './routes/territorio.js'
+
 import session from 'express-session';
 import validator from 'validator';
 const app = express();
@@ -121,9 +122,19 @@ app.post("/log_in",
   })
 );
 
+
+app.use('/postiliberi', postiliberiRouter);
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/territorio', territorioRouter);
+app.use((req, res, next) => {
+console.log("404 intercettato:");
+console.log(req.method);
+console.log(req.originalUrl);
+ 
+next(createError(404));
+});
+
 
 
 

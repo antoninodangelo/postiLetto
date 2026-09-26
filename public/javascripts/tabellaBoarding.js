@@ -5,7 +5,7 @@ async function tabellaBoarding(){
     try {
         const response = await fetch("/pazientiPerSetting/7");
         const pazientiBoarding = await response.json();
-        console.log("Pazienti in boarding:", pazientiBoarding);
+       
         container.innerHTML = "";
         container.innerHTML = "<h4 class='h5 border-bottom pb-2 mb-3'>PAZIENTI IN BOARDING</h4>";
         const table = document.createElement("table");

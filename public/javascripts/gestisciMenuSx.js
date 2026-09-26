@@ -10,8 +10,12 @@ function creaMenuSx(
     gestionePiano,
     generaTabellaLettiOccupati,
     tabellaPazientiGestiti,
-    gestisciFormSetting
-) {
+    gestisciFormSetting,
+    programmazione,
+    dataPrenota,
+    attivaModal
+) 
+{
 
     const menuSx = document.getElementById(gancio);
     menuSx.innerHTML = "";
@@ -63,6 +67,13 @@ function creaMenuSx(
                 gestisciFormSetting( "dashboardReparti", user.IDUtente,  user.IDLivelloAccesso, "saveSetting");
 
             }
+             if (e.target.classList.contains('programmazione')) {
+                document.getElementById('dashboardReparti').innerHTML = "";
+                document.getElementById('tabellaTrasf').innerHTML = "";
+                document.getElementById('tabellaDimissioni').innerHTML = ""               
+                programmazione(user, attivaModal, null,attivaModal);
+
+            }
             
             
         };
@@ -90,7 +101,7 @@ function creaMenuSx(
             case 10:
             menuSx.innerHTML = `
                 <ul class="list-group">
-                    <li class="list-group-item gestioneTerritorio voce-menuDx pointer">GESTIONE LETTI TERRITORIALI</li>
+                    <li class="list-group-item programmazione voce-menuDx pointer">PROGRAMMAZIONE LETTI</li>
                 </ul>`;
             break;
     }

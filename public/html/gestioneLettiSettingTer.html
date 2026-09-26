@@ -7,6 +7,8 @@
   <title>GESTIONE BED MANAGER</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+ 
 
   <link href="../stylesheets/style.css" rel="stylesheet">
 
@@ -42,8 +44,10 @@
       <a class="navbar-brand d-flex align-items-center gap-2" href="#">
         <img src="../images/ATC_scritta.jpg" alt="Logo" width="40" height="50" class="img-fluid">
         <img src="../images/logo.jpg" alt="Logo" width="60" height="50" class="img-fluid">
-      </a>
+      </a> 
+      <div class="text-center fs-4 text-white fw-bold">AUSL Dipartimento Assistenza Infermieristica e Ostetrica</div> 
       <div class="d-flex align-items-center gap-3">
+      
         <!-- Il testo di benvenuto si nasconde sui telefoni molto piccoli per non sovrapporsi -->
         <p class="text-white mb-0 d-none d-sm-block">Benvenuto, <span id="nomeUtente"></span></p>
         <button class="btn btn-outline-light btn-sm" id="logoutBtn">Logout</button>
@@ -81,12 +85,12 @@
 
       <!-- COLONNA 3: Pazienti e Letti (Colonna destra su desktop, in fondo su mobile) -->
       <div class="col-12 col-lg-3 col-scroll p-3 border bg-light right-column rounded shadow-sm">
-        <h4 class="h5 border-bottom pb-2 mb-3">Stato Letti & Pazienti</h4>
-       <!--  <h2 id="lettiLiberi" class="h6 badge bg-success d-block text-start p-2 mb-2"></h2> -->
+        <h4 class="h5 border-bottom pb-2 mb-3">Inserisci un nuovo paziente nella lista dei BOARDING</h4>
+        <h2 id="lettiLiberi1" class="h6 badge  d-block text-start p-2 mb-2"></h2>
         <!--<h2 id="lettiChiusi" class="h6 badge bg-danger d-block text-start p-2 mb-2"></h2>  -->
         <!-- <h2 id="pzTrasferiti" class="h6 badge bg-warning text-dark d-block text-start p-2 mb-3"></h2>         -->
        
-        <div id="boarding"></div>
+        <!--<div id="boarding"></div> -->
         
         <!-- Contenitore letti ottimizzato per la visualizzazione a griglia flessibile -->
        
@@ -134,6 +138,43 @@
         </div>
         <div class="modal-body">
           <form id="formInsPaziente">
+            <!-- JS genererà dinamicamente i campi -->
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="modal fade" id="prolungaRic" tabindex="-1" aria-labelledby="modalProlungaRicLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalProlungaRicLabel">Inserimento Paziente da trasferire</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formProlungaRic">
+            <!-- JS genererà dinamicamente i campi -->
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<div class="modal fade" id="prenotaModal" tabindex="-1" aria-labelledby="modalPrenotaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalPrenotaLabel">Prenotazione Posto Letto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formPrenota">
             <!-- JS genererà dinamicamente i campi -->
           </form>
         </div>

@@ -1,4 +1,4 @@
-import { tabellaRicoverati } from "./creaTabellaRicoverati.js";
+
 import { creaMenuSx } from "./gestisciMenuSx.js";
 import { tabellaDimissioni } from "./tabellaDimissioni.js";
 import { gestisciChiusure } from "./gestioneChiusure/gestisciChusuraLetti.js";
@@ -8,10 +8,15 @@ import { tabellaPazientiGestiti } from "./tabellaPazientiGestiti.js"
 import { gestisciFormSetting } from "./tabellaInsSetting.js";
 import { tabellaBoarding } from "./tabellaBoarding.js";
 import { listaPzBoarding} from "./tabellaListaBoarding.js";
+import  {programmazione} from "./lettiLiberi/programmazione.js";
 
 
 const oggi = Date.now(); // Prende il timestamp attuale in millisecondi
+const user= {
+    IDUtente: null,
+    livelloAccesso:null
 
+}
 let setting = [];
 let settingUtente = [];
 let settingsZona = [];
@@ -19,6 +24,32 @@ let livelloAccesso = 1;
 let zonaUtente = 1;
 let IDUtente = 1;
 let IDSetting = null;
+
+const formPrenota=[
+    {
+        id:'idPostoLibero',
+        label:'Identificativo posto letto libero',
+        type:'text',
+        required: true,
+        disabled:false,
+        visibile:true
+    },
+    {
+        id: 'dataOcc',
+        label: 'Data programmazione:',
+        type: 'date',
+        required: true,
+        disabled: false,
+        max:new Date(oggi + 86400000*30).toISOString().split('T')[0],
+        min:new Date(oggi + 86400000).toISOString().split('T')[0]
+    }
+
+]
+const dataPrenota = {
+    idPostoLibero: null,
+    dataOcc: new Date(oggi).toISOString().split('T')[0],
+    formType: 'occupaLetto'
+}
 /// devo aggiustare iDSetting
 fetch('/users/getUserData', { credentials: 'include' })
     .then(res => {
@@ -35,9 +66,11 @@ fetch('/users/getUserData', { credentials: 'include' })
         IDUtente = data.IDUtente;
         livelloAccesso = data.IDPubblico;
         IDSetting = data.IDSetting;
+        user.IDUtente=data.IDUtente;
+        user.livelloAccesso= data.IDPubblico;
+        
 
         await caricaDati();
-
         creaMenuSx(
             livelloAccesso,
             "menuSx",
@@ -49,8 +82,11 @@ fetch('/users/getUserData', { credentials: 'include' })
             creaCardRepartoConLettiSVG,
             gestionePiano,
             generaTabellaLettiOccupati,
-            tabellaPazientiGestiti,     // <── AGGIUNGI QUESTO
-            gestisciFormSetting         // <── ORA È NELLA POSIZIONE GIUSTA
+            tabellaPazientiGestiti,    
+            gestisciFormSetting,
+            programmazione ,
+            dataPrenota,
+            attivaModal
         );
 
     })
@@ -81,6 +117,32 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 });
 
 
+const prolungaRic =[
+    {
+        id:'IDPaziente',
+        label:'Identificativo paziente',
+        type:'text',
+        required: true,
+        disabled:false,
+        visibile:true
+    },
+    {
+        id: 'dataDimissione',
+        label: 'Data di Presunta dimissione:',
+        type: 'date',
+        required: true,
+        disabled: false,
+        max:new Date(oggi + 86400000*30).toISOString().split('T')[0],
+        min:new Date(oggi + 86400000).toISOString().split('T')[0]
+    }
+   
+]
+const datiProlungaRic = {
+    IDPaziente: null,
+    dataDimissione:null,
+    formType:'prolungaRic'
+
+}
 const configurazioneFormPz = [
 
     {
@@ -232,6 +294,8 @@ const configurazioneForm = [
 ];
 configurazioneFormPz.formType = "updatePaziente";
 configurazioneForm.formType = "updateLetto";
+prolungaRic.formType='prolungaRic';
+
 
 
 // 2. OGGETTO DI APPOGGIO DATI: Qui verranno salvati i valori inseriti dall'utente
@@ -248,13 +312,15 @@ let datiForm = {
 };
 
 
-function generaFormDinamico(config, storage, idFormHTML) {
+function generaFormDinamico(config, storage, idFormHTML,tipoForm) {
+   
     const formElement = document.getElementById(idFormHTML);
     formElement.classList.add("form-compact");
     if (!formElement) return console.error("Form non trovato nell'HTML");
     formElement.innerHTML = ''; // Pulisce il form da vecchi elementi
     formElement.onsubmit = null;
-    formElement.dataset.formType = config.formType;
+    formElement.dataset.formType = tipoForm;
+    alert  (tipoForm);
     if (livelloAccesso === 1) {
         config = config.filter(el => el.id !== 'dataTrasf');
     }
@@ -297,7 +363,8 @@ function generaFormDinamico(config, storage, idFormHTML) {
             if (campo.disabled) input.disabled = true;
             if (campo.visibile === false) input.style.display = 'none';  
             if (campo.min) input.min = campo.min;
-            if (campo.max) input.max = campo.max;       
+            if (campo.max) input.max = campo.max;   
+               
             storage[campo.id] = storage[campo.id] || ''; // Inizializza il valore nello storage se non presente
         }
 
@@ -313,6 +380,7 @@ function generaFormDinamico(config, storage, idFormHTML) {
         // EVENTO INPUT/CHANGE: Aggiorna l'oggetto di appoggio ad ogni digitazione
 
         input.addEventListener('change', e => {
+            
             storage[campo.id] = e.target.value;
         });
         // Appende l'input al wrapper e il wrapper al form principale
@@ -336,9 +404,8 @@ function generaFormDinamico(config, storage, idFormHTML) {
             let endpoint = "";
             let nomeModale = "";
             let payload = storage;
-
             const tipoForm = formElement.dataset.formType;
-
+            console.log("Tipo di form inviato:", tipoForm, "con dati:", payload);
             switch (tipoForm) {
                 case "updateLetto":
                     endpoint = "/territorio/salvaDatiLetto";
@@ -349,8 +416,16 @@ function generaFormDinamico(config, storage, idFormHTML) {
                     endpoint = `/territorio/salvaDatiPaziente/${livelloAccesso}`;
                     nomeModale = 'insPaziente';
                     break;
+                case "prolungaRic":                    
+                     endpoint = `/territorio/prolungaRicovero`;
+                     nomeModale = 'prolungaRic';
+                    break;
+                case "occupaLetto":
+                    endpoint = `/postiliberi/occupaLetto`;
+                    nomeModale = 'prenotaModal'; 
+                    break;
             }
-            
+           
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -358,14 +433,17 @@ function generaFormDinamico(config, storage, idFormHTML) {
             });
 
             const data = await response.json();
-            await caricaSetting(IDUtente, livelloAccesso);
-            await caricaSetting(IDUtente, livelloAccesso, 7);
+            //await caricaSetting(IDUtente, livelloAccesso);
+            //await caricaSetting(IDUtente, livelloAccesso, 7);
             chiudiModal(nomeModale);
-            generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
+            document.getElementById('dashboardReparti').innerHTML='';
+            programmazione(user, livelloAccesso, dataPrenota, attivaModal);
+
+            //generaTabellaPazienti(settingUtente, "tabellaTrasf", livelloAccesso);
             
             //generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
-            generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
-            generaTabellaPostiChiusi(IDUtente, 'lettiChiusi');
+            //generaTabellaPostiLiberi(IDUtente, 'tabellaTrasf', livelloAccesso);
+            //generaTabellaPostiChiusi(IDUtente, 'lettiChiusi');
             //tabellaDimissioni("tabellaDimissioni", IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settingUtente, generaTabellaPazienti);
 
         } catch (error) {
@@ -404,7 +482,7 @@ function generaTabellaPostiLiberi(IDUtente, idDivAggancio, livelloAccesso) {
             const container = document.getElementById(idDivAggancio);
 
             if (!container) return console.error("Div non trovata:", idDivAggancio);
-            //container.innerHTML = ""; // pulizia
+            container.innerHTML = ""; // pulizia
             creaTabellaQuery(
                 dati,
 
@@ -610,17 +688,16 @@ function creaSelectQuery(label, valori, idSelect, idAggancio, titolo = null) {
 QUEST E LA TABELLA SOTTO I LETTI CHE PERMETTE LA GESTIONE DEI TRASFER
 */
 async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
-    if (livelloAccesso<50) return false;
-    console.log(settings, "questi sono i setting passati alla funzione su cui ciclare")
+   // if (livelloAccesso<50) return false;
+   
     const container = document.getElementById(idDivAggancio);
     if (!container) return console.error("Div non trovata:", idDivAggancio);
     container.innerHTML = "";
-
-    for (const settingID of [7]) {
-
+    if(livelloAccesso >= 50) settings =[7];
+    for (const settingID of settings) {
         const response = await fetch(`/territorio/pazientiPerSetting/${settingID}`);
         const pazienti = await response.json();
-
+        
         const responseSetting = await fetch(`/territorio/getSettingDestinazione`);
         const settingData = await responseSetting.json();
 
@@ -629,49 +706,77 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
         const nomeSetting = pazienti[0].setting;
         const mostraDestinazione = livelloAccesso >= 50;
 
-        // WRAPPER RESPONSIVE
+        // WRAPPER RESPONSIVE (Modificato: rimosso overflow e bloccata la larghezza per non scorrere a destra)
         const wrapper = document.createElement("div");
-        wrapper.className = "table-responsive";
+        wrapper.className = "w-100 mb-4";
 
         const table = document.createElement("table");
-        table.className = "table table-striped table-bordered table-hover mb-4 align-middle table-compact";
+        // MODIFICATE CLASSI: Sostituito 'table-responsive table-compact' con 'table-sm small table-layout-fixed' per scritte piccole, professionali e larghezza fissa
+        table.className = "table  table-sm table-striped table-bordered table-hover mb-0 align-middle small text-nowrap";
 
         let colSetting = "";
         let colAzioneTrasf = '<th>dimetti</th>';
-        if (livelloAccesso >= 50) colSetting = `<th>setting</th>`;
-        if (livelloAccesso >= 50) colAzioneTrasf = `<th>trasferisci</th>`;
-
-        table.innerHTML = `
-            <thead class="table-primary">
+        let prolunga ='<th>Prolunga</th>'
+        
+        if (livelloAccesso >= 50) {
+            colAzioneTrasf = `<th>Canella</th><th>trasferisci</th>`;
+            prolunga='';
+        }
+        // MODIFICATE CLASSI THEAD: Passato a 'table-dark' per un contrasto professionale e scritte maiuscole e piccole
+        if( livelloAccesso < 50){
+            table.innerHTML = `
+            <thead class="table-info text-uppercase" style="font-size: 0.8rem;">
                 <tr>
-                    <th colspan="${mostraDestinazione ? 9 : 6}" class="text-center">${nomeSetting}</th>
+                    <th colspan="9" class="text-center py-2 fs-6 fw-bold">${nomeSetting}</th>
                 </tr>
-                <tr>
-                    ${colSetting}
+                <tr> 
+                    <th>Canella</th>
+                    <th>Dimetti</th>
+                    <th>Prolunga</th>
                     <th>Nome</th>
                     <th>Cognome</th>
                     <th>Data Nascita</th>
+                    <th>Sesso</th>
+                    <th>Data Dim.</th>
                     <th>Letto</th>
-                    ${mostraDestinazione ? "<th>Setting destinazione</th><th>Letti Liberi</th>" : ""}
-                    <th style="width:120px">Azioni</th>
-                    ${colAzioneTrasf}
                 </tr>
             </thead>
             <tbody></tbody>
         `;
-
+        }else{
+        table.innerHTML = `
+            <thead class="text-uppercase table-info" style="font-size: 0.8rem;">
+                <tr>
+                    <th colspan="10" class="text-center py-2 fs-6 fw-bold">${nomeSetting}</th>
+                </tr>
+                <tr> 
+                    <th colspan=3>Azioni</th>                    
+                    <th>Setting destinazione</th> 
+                    <th>Letti Liberi</th>              
+                    <th>Nome</th>
+                    <th>Cognome</th>
+                    <th>Data Nascita</th>
+                    <th>Sesso</th>
+                    <th>Data Dim.</th>                    
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
+        }
         const tbody = table.querySelector("tbody");
 
         pazienti.forEach(async p => {
 
-            let selectSetting = `<select id="selectSetting_${p.IDPaziente}" class="form-select form-select-sm">`;
+            // MODIFICATE CLASSI SELECT: Aggiunto 'p-1' e stile inline per font rimpicciolito
+            let selectSetting = `<select id="selectSetting_${p.IDPaziente}" class="form-select form-select-sm p-1" style="font-size: 0.75rem;">`;
             selectSetting += `<option value="0">Seleziona un valore...</option>`;
             settingData.forEach(s => {
                 selectSetting += `<option value="${s.valore}">${s.testo}</option>`;
             });
             selectSetting += `</select>`;
 
-            let selectLettiLiberi = `<select id="selectLettiLiberi_${p.IDPaziente}" class="form-select form-select-sm">`;
+            // MODIFICATE CLASSI SELECT: Aggiunto 'p-1' e stile inline per font rimpicciolito
+            let selectLettiLiberi = `<select id="selectLettiLiberi_${p.IDPaziente}" class="form-select form-select-sm p-1" style="font-size: 0.75rem;">`;
             selectLettiLiberi += `<option value="0">Seleziona un valore...</option>`;
             selectLettiLiberi += `</select>`;
 
@@ -688,7 +793,7 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
 
                     let html = `<option value="0">Seleziona un valore...</option>`;
                     html += (lettiLiberi?.length > 0)
-                        ? lettiLiberi.map(s => `<option value="${s.IDPostoLetto}">${s.numeroLetto}</option>`).join("")
+                        ? lettiLiberi.map(s => `<option value="${s.IDPostoLetto}">${s.numeroLetto}-${(s.sessoPz===1)?"F":"M"}</option>`).join("")
                         : `<option value="" disabled>Nessun letto libero</option>`;
 
                     select.innerHTML = html;
@@ -699,25 +804,55 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
             tr.dataset.idPaziente = p.IDPaziente;
             tr.dataset.idPostoLetto = p.IDPostoLetto;
             tr.dataset.setting = p.setting;
+            tr.style.fontSize = "0.85rem"; // Rimpicciolisce il testo di tutte le righe di dati
 
-            let colSettingTD = (livelloAccesso >= 50) ? `<td>${p.setting}</td>` : "";
+            let colSettingTD = `<td>${p.sesso===1?"F":"M"}</td>`;
+            
+            // MODIFICATE CLASSI BOTTONI: Convertiti in 'btn-outline-*', aggiunta altezza minima con 'py-0' e ridotto font
             let colAzioneTrasfTD = (livelloAccesso >= 50)
-                ? `<td><button class="btn btn-primary btn-sm w-100 btn-trasferisci">TRASFERISCI</button></td>`
-                : `<td><button class="btn btn-primary btn-sm w-100 btn-dimetti">Dimetti</button></td>`;
+                ? `<td><button class="btn btn-outline-primary btn-sm w-100 py-0 fw-semibold text-uppercase btn-trasferisci" style="font-size: 0.7rem;">TRASFERISCI</button></td>`
+                : `<td><button class="btn btn-outline-success btn-sm w-100 py-0 fw-semibold text-uppercase" style="font-size: 0.7rem;btn-dimetti">DIMETTI</button></td>`;
+            
+            // MODIFICATE CLASSI BOTTONI: Aggiunto 'py-0' e ridotto font
+            let colProlunga = `<td class="text-center">
+                    <button class="btn btn-warning btn-sm w-100 py-0 fw-semibold text-uppercase text-white btn-prolungaRic" data-id-paziente=${p.IDPaziente} style="font-size: 0.7rem;">Prolunga</button>
+                </td>`;
+                //(livelloAccesso >= 50)? colProlunga="": colProlunga;
+            
+            // MODIFICATE CLASSI BOTTONI: Convertito in 'btn-outline-danger', aggiunto 'py-0' e ridotto font
+            if(livelloAccesso< 50){                
+                tr.innerHTML = `                    
+                    <td class="text-center">
+                        <button class="btn btn-outline-danger btn-sm w-100 py-0 fw-semibold text-uppercase btn-cancella" style="font-size: 0.7rem;">Cancella</button>
+                    </td>
+                    ${colAzioneTrasfTD}
+                    ${colProlunga}                    
+                    <td>${p.nomePaziente}</td>
+                    <td>${p.cognomePaziente}</td>
+                    <td>${p.dataNascita}</td>
+                    <td>${p.sesso===1?"F":"M"}</td>
+                    <td>${p.dataDimissione}</td> 
+                    <td>${p.numeroLetto}</td>   
+                `;
+            }else{
+                tr.innerHTML = `                    
+                    <td class="text-center">
+                        <button class="btn btn-outline-danger btn-sm w-100 py-0 fw-semibold text-uppercase btn-cancella" style="font-size: 0.7rem;">Cancella</button>
+                    </td>
+                    ${colAzioneTrasfTD}
+                    ${colProlunga}
+                    <td>${selectSetting}</td>
+                    <td>${selectLettiLiberi}</td>
+                    <td>${p.nomePaziente}</td>
+                    <td>${p.cognomePaziente}</td>
+                    <td>${p.dataNascita}</td>
+                    <td>${p.sesso===1?"F":"M"}</td>
+                    <td>${p.dataDimissione}</td>   
+                   
+                    
+                `;
 
-            tr.innerHTML = `
-                ${colSettingTD}
-                <td>${p.nomePaziente}</td>
-                <td>${p.cognomePaziente}</td>
-                <td>${p.dataNascita}</td>
-                <td>${p.numeroLetto}</td>
-                ${mostraDestinazione ? `<td>${selectSetting}</td>` : ""}
-                ${mostraDestinazione ? `<td>${selectLettiLiberi}</td>` : ""}
-                <td class="text-center">
-                    <button class="btn btn-danger btn-sm w-100 btn-cancella">Cancella</button>
-                </td>
-                ${colAzioneTrasfTD}
-            `;
+            }
 
             tbody.appendChild(tr);
         });
@@ -726,6 +861,7 @@ async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
         container.appendChild(wrapper);
     }
 }
+
 async function dimettiPaziente(IDPaziente, IDPostoLetto, livelloAccesso, IDUtente) {
     const responce = await fetch(`/territorio/dimettiPaziente/${IDPaziente}/${IDPostoLetto}/${livelloAccesso}/${IDUtente}`);
 }
@@ -854,12 +990,9 @@ const modalAlertBody = document.getElementById("modalBodyAlert");
 
 window.assegnaPaziente = function assegnaPaziente(event, IDPostoLetto, IDSetting) {
     event.stopPropagation();
-
     datiformPz.IDPostoLetto = IDPostoLetto;
-    datiformPz.IDSetting = IDSetting;
-
+    datiformPz.IDSetting = IDSetting; 
     generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente');
-
     attivaModal(null, null, IDSetting, 'insPaziente');
 };
 
@@ -991,7 +1124,7 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
 
                 svg.querySelector(".gestisciLetto").addEventListener("click", (event) => {
                     event.stopPropagation();
-                  alert(event.currentTarget.dataset.idPostoletto);
+                 
                   datiForm.IDSetting=event.currentTarget.dataset.idSetting;
                   datiForm.IDPostoLetto= event.currentTarget.dataset.idPostoletto
                     attivaModal(null, null, IDSetting, "modale");
@@ -1188,6 +1321,7 @@ document.addEventListener('click', async (e) => {
             return;
         }
     }
+   
 
     if (e.target.classList.contains('btn-dimetti')) {
         const tr = e.target.closest('tr');
@@ -1212,11 +1346,11 @@ document.addEventListener('click', async (e) => {
 
 
     if (e.target.classList.contains('btn-trasferisci')) {
-        const tr = e.target.closest('tr');
+        const tr = e.target.closest('tr');       
         const idPostoLetto = tr.dataset.idPostoLetto;
         const idPaziente = tr.dataset.idPaziente;
         const idLettoDestinazione = parseInt(document.getElementById("selectLettiLiberi_" + idPaziente).value, 10);
-
+        datiProlungaRic.IDPaziente = idPaziente;
         const idSettigDestinazione = document.getElementById("selectSetting_" + idPaziente).value;
         if (idLettoDestinazione === 0 || idLettoDestinazione === undefined) {
             alert('DEVI SELZIONARE UN LETTO DI DESTINAZIONE');
@@ -1240,7 +1374,24 @@ document.addEventListener('click', async (e) => {
             return;
         }
     }
+    if (e.target.classList.contains('btn-prolungaRic')) {
 
+        const bottone = e.target;
+    
+    // Recuperi i dati convertiti in camelCase
+    const idPostoLetto = bottone.dataset.idPostoLetto;
+    datiProlungaRic.IDPaziente=bottone.dataset.idPaziente;
+
+        const controllo = confirm("SEI SICURO DI VOLER PROLUNGARE IL RICOVERO?");
+        if (controllo) {      
+                
+            attivaModal(null,null,null,"prolungaRic")
+        }
+        else {
+            alert('TRASFERIMENTO ANNULLATO');
+            return;
+        }
+    }
 });
 function aggiornaContatori(reparto) {
     const liberi = reparto.querySelectorAll(".letto.libero").length;
@@ -1254,7 +1405,7 @@ const dashboard = document.getElementById("dashboardReparti");
 
 window.attivaModal = function (event, IDPostoLetto, IDSetting, tipoModale) {
     
-    // 🔥 NON bloccare Bootstrap se event è null
+    // Non bloccare Bootstrap se event è null
     if (event) {
         event.stopPropagation();
         event.preventDefault();
@@ -1265,29 +1416,43 @@ window.attivaModal = function (event, IDPostoLetto, IDSetting, tipoModale) {
         keyboard: false
     };
 
-    let mioModale;
+    let targetHtml = null;
 
+    // 1. GESTIONE DEI DATI E DEI FORM DINAMICI
     if (tipoModale === 'modale') {
-        const html = document.getElementById("modalLetto");
+        targetHtml = document.getElementById("modalLetto");
         generaFormDinamico(configurazioneForm, datiForm, 'formModale');
-        mioModale = new bootstrap.Modal(html, params);
-        mioModale.show();
-        return;
+    } 
+    else if (tipoModale === 'alert') {
+        targetHtml = document.getElementById("alert");
+    } 
+    else if (tipoModale === 'prenotaModal') {       
+        dataPrenota.idPostoLibero = IDPostoLetto;            
+        targetHtml = document.getElementById("prenotaModal");
+        generaFormDinamico(formPrenota, dataPrenota, 'formPrenota','occupaLetto');
+    } 
+    else if (tipoModale === 'prolungaRic') {
+        targetHtml = document.getElementById('prolungaRic');
+        // Controlla che il nome della configurazione (qui configurazioneProlunga) 
+        // non sia identico all'ID del div per evitare conflitti
+        generaFormDinamico(configurazioneProlunga, datiProlungaRic, 'formProlungaRic');
+    } 
+    else {
+        // INSERIMENTO PAZIENTE (Default)
+        targetHtml = document.getElementById("insPaziente");
+        generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente');
     }
 
-    if (tipoModale === 'alert') {
-        const html = document.getElementById("alert");
-        mioModale = new bootstrap.Modal(html, params);
+    // 2. ISTANZIAMENTO E APERTURA SICURA DEL MODALE
+    if (targetHtml) {
+        // Previene la duplicazione del modale in memoria se cliccato più volte
+        const mioModale = bootstrap.Modal.getOrCreateInstance(targetHtml, params);
         mioModale.show();
-        return;
+    } else {
+        console.error(`Impossibile trovare l'elemento HTML per il tipo modale: ${tipoModale}`);
     }
-
-    // 🔥 INSERIMENTO PAZIENTE
-    const html = document.getElementById("insPaziente");
-    generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente'); // 🔥 CORRETTO
-    mioModale = new bootstrap.Modal(html, params);
-    mioModale.show();
 }
+
 
 // 2) Funzione di chiusura resa sicura
 function chiudiModal(idModale) {
@@ -1319,7 +1484,6 @@ document.addEventListener('change', async (e) => {
 
         const dati = await settingAzienda.json();
         if (e.target.id === 'zona') {
-
             configurazioneFormPz.find(el => el.id === 'settingApp').options =
                 dati.map(s => s.setting);
             configurazioneFormPz.find(el => el.id === 'settingApp').values =

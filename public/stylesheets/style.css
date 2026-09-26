@@ -85,17 +85,11 @@
   gap: 6px;
 
   padding: 6px;
-
+  cursor: pointer;
   min-height: 200px;
   max-height: 300px;                 /* 🔥 altezza massima */
   overflow-y: auto;                  /* scroll verticale */
   overflow-x: hidden;
-}
-
-.svg-button {
-  width: 16px !important;
-  height: 16px !important;
-  cursor: pointer;
 }
 
 

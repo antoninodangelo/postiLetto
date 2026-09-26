@@ -1,10 +1,9 @@
 import express from 'express';
 import path from 'path';
 import pool from '../config/db.js';
-import { format } from "date-fns";
+import { constructNow, format } from "date-fns";
 const oggi = format(new Date(), "yyyy-MM-dd HH:mm:ss");
 import { fileURLToPath } from 'url';
-
 
 
 const router = express.Router();
@@ -14,6 +13,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // HOME PAGE
+
+function generaCodiceData() {
+    const ora = new Date();
+    
+    const stringaData = ora.getFullYear() +
+        String(ora.getMonth() + 1).padStart(2, '0') +
+        String(ora.getDate()).padStart(2, '0') +
+        String(ora.getHours()).padStart(2, '0') +
+        String(ora.getMinutes()).padStart(2, '0') +
+        String(ora.getSeconds()).padStart(2, '0');
+        
+    // Aggiungiamo i millisecondi (3 cifre) per una precisione estrema
+    const millisecondi = String(ora.getMilliseconds()).padStart(3, '0');
+    
+    return `${stringaData}-${millisecondi}`; 
+    // Esempio di output: "20260929124530125" (29 Settembre 2026, 12:45:30 e 125ms)
+}
 
 
 router.get('/numeroLettiLiberi/:IDUtente/:livelloAccesso', async (req, res) => {
@@ -56,7 +72,7 @@ router.get('/numeroLettiLiberi/:IDUtente/:livelloAccesso', async (req, res) => {
 });
 router.get('/lettiLiberiSetting/:IDSetting', async (req, res) => {
     const  {IDSetting} = req.params;
-    const sql =`SELECT pl.IDPostoLetto, pl.numeroLetto FROM postiletto pl
+    const sql =`SELECT pl.IDPostoLetto, pl.numeroLetto, pl.sessoPz FROM postiletto pl
       INNER JOIN setting s ON s.IDSetting = pl.IDSetting
       WHERE pl.IDStatoLetto=14 AND s.IDSetting = ?`
     // 1) Aggiorno il paziente
@@ -122,26 +138,50 @@ router.get('/aziende', async (req, res) => {
   }
 });
 
+
+router.post('/prolungaRicovero', async (req, res) => {
+  console.log(req.body);
+  const { IDPaziente, dataDimissione } = req.body;
+
+  try {
+    // 1. CORREZIONE: L'ordine dei parametri nell'array deve seguire esattamente l'ordine dei '?' nella query SQL
+    const sql = "UPDATE paziente SET dataDimissione = ? WHERE IDPaziente = ?";
+    await pool.execute(sql, [dataDimissione, IDPaziente]);
+
+    // 2. CORREZIONE: Devi inviare una risposta di successo al client
+    return res.status(200).json({ success: true, message: "Ricovero prolungato con successo" });
+
+  } catch (error) {
+    console.error("Errore database:", error); // Utile per il debug sul server
+    
+    // 3. CORREZIONE: Non lanciare un "throw new Error", ma rispondi al client con un codice di errore HTTP (500)
+    return res.status(500).json({ success: false, error: "Errore nell'aggiornare la data di ricovero" });
+  }
+});
+
 // ZONE
 router.get("/pazientiPerSetting/:IDSetting", async(req, res) => {
     const { IDSetting } = req.params;
-    console.log("questo è il setting", IDSetting);
+    
+    let dettaglio ="";
+    (IDSetting === "7")? dettaglio = "AND p.IDPostoLetto=181": dettaglio= "AND s.IDSetting=?";
     const sql = `
          SELECT 
-            p.IDPaziente,
-            p.nomePaziente,
-            p.IDPostoLetto,
-            p.cognomePaziente,
-            DATE_FORMAT(p.dataNascita, '%d/%m/%Y') AS dataNascita,
-            l.numeroLetto,
-            l.IDPostoLetto,
-            s.setting
-        FROM paziente p        
-        LEFT JOIN postiletto l ON l.IDPostoLetto = p.IDPostoLetto
-        INNER JOIN setting s ON s.IDSetting = l.IDSetting
-        WHERE l.IDSetting = ?
-          AND p.dataDimissione IS NULL and p.attivo =1
-        ORDER BY p.cognomePaziente, p.nomePaziente
+      p.IDPaziente,
+      p.nomePaziente,
+      p.IDPostoLetto,
+      p.cognomePaziente,
+      p.sesso,
+      DATE_FORMAT(p.dataNascita, '%d/%m/%Y') AS dataNascita,
+      DATE_FORMAT(p.dataDimissione, '%d/%m/%Y') AS dataDimissione,
+      l.numeroLetto,
+      l.IDPostoLetto,
+      s.setting
+  FROM paziente p        
+  LEFT JOIN postiletto l ON l.IDPostoLetto = p.IDPostoLetto
+  INNER JOIN setting s ON s.IDSetting = l.IDSetting
+  WHERE (p.dataDimissione IS NULL OR p.dataDimissione >= CURDATE()) and p.attivo =1 ${dettaglio}
+  ORDER BY p.cognomePaziente, p.nomePaziente
     `;
     
     const [results]= await pool.query(sql, [IDSetting])
@@ -282,10 +322,10 @@ ORDER BY p.numeroStanza, p.numeroLetto;
       [IDSetting]
     );
 
-    res.json(rows);
+    return res.json(rows);
   } catch (err) {
     console.error('Errore query:', err);
-    res.status(500).json({ error: 'Errore server' });
+    return res.status(500).json({ error: 'Errore server' });
   }
 });
 // SALVATAGGIO LETTO
@@ -294,9 +334,11 @@ router.post('/Paziente/:livelloAccesso', async (req, res) => {
   
   
   const { IDPostoLetto, nomePaziente,cognomePaziente, dataNascita, sesso, settingDestinazione, dataTrasf,problemiAperti, settingApp } = req.body;
-  const nuovoPaziente = [IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso, null, settingDestinazione, problemiAperti, settingApp];
+  const nuovoPaziente = [generaCodiceData(),IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso, null, settingDestinazione, problemiAperti, settingApp];
+  let conn = null;
   try {
-    
+    conn = pool.getConnection();
+    (await conn).beginTransaction();
     // prima di fare l'inserimento devo controllare nella tabella pazienti che non siano presenti pazienti in quel letto senza data di trasf.
     const [rowsPzPresente] = await pool.query(`SELECT  
     p.IDSetting,
@@ -323,25 +365,30 @@ ORDER BY p.numeroStanza, p.numeroLetto;
 `, [IDPostoLetto]);
     
     if(rowsPzPresente.length >0){
-      const [rows]= await pool.query('UPDATE paziente set dataDimissione=? where IDPostoLetto = ? and IDPaziente = ?',[oggi,IDPostoLetto,rowsPzPresente[0].IDPaziente])
-      const [info]= await pool.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto])
+      const [rows]= await conn.query('UPDATE paziente set dataDimissione=? where IDPostoLetto = ? and IDPaziente = ?',[oggi,IDPostoLetto,rowsPzPresente[0].IDPaziente])
+      const [info]= await conn.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto])
     }
     
     // SE abbiamo rowsPzPresente devo inserire la data di trasf. nella tupla troavata e eseguire l'inserimeto
 
-    const [info] = await pool.query(`INSERT INTO paziente (IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso,dataDimissione,IDSettingDestinazione,problemiAperti,IDProvenienza)
-      VALUES (?,?, ?,?,?,?,?,?,?)`, nuovoPaziente);
+    const [info] = await conn.query(`INSERT INTO paziente (idRicovero,IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso,dataDimissione,IDSettingDestinazione,problemiAperti,IDProvenienza)
+      VALUES (?,?,?, ?,?,?,?,?,?,?)`, nuovoPaziente);
     if(info){
-      const [info1]= await pool.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto]);
+      const [info1]= await conn.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto]);
     }
-    
+    (await conn).commit();
+    (await conn).release()
     res.json({
       message: 'Dati aggiornati con successo',
       updated: info.affectedRows
     });
   } catch (err) {
+    if(conn){
+      (await conn).rollback()
+      (await conn).release();
+    }
     console.error('Errore query:', err);
-    res.status(500).json({ error: 'Errore server' });
+    return res.status(500).json({ error: 'Errore server' });
   }
 
 });
@@ -398,71 +445,166 @@ router.get('/getStatoPazienti', async (req, res) => {
 router.post('/salvaDatiPaziente/:livelloAccesso', async (req, res) => {
   const livelloAccesso = req.params.livelloAccesso;
   
-  
-  const { IDPostoLetto, nomePaziente,cognomePaziente, dataNascita, sesso, settingDestinazione, dataTrasf,problemiAperti, settingApp } = req.body;
-  const nuovoPaziente = [IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso, null, settingDestinazione, problemiAperti, settingApp];
-  try {
-    
-    // prima di fare l'inserimento devo controllare nella tabella pazienti che non siano presenti pazienti in quel letto senza data di trasf.
-    const [rowsPzPresente] = await pool.query(`SELECT * FROM paziente
-                              WHERE paziente.IDPostoLetto= ? AND (
-        paziente.dataTrasf IS NULL
-        OR paziente.dataTrasf = 0
-         
-      );`, [IDPostoLetto]);
-    
-    if(rowsPzPresente.length >0){
-      const [rows]= await pool.query('UPDATE paziente set dataDimissione=? where IDPostoLetto = ? and IDPaziente = ?',[oggi,IDPostoLetto,rowsPzPresente[0].IDPaziente])
-      const [info]= await pool.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto])
-    }
-    
-    // SE abbiamo rowsPzPresente devo inserire la data di trasf. nella tupla troavata e eseguire l'inserimeto
+  const { 
+    IDPostoLetto, 
+    nomePaziente, 
+    cognomePaziente, 
+    dataNascita, 
+    sesso, 
+    settingDestinazione, 
+    dataTrasf, 
+    problemiAperti, 
+    settingApp, 
+    dataDimissione 
+  } = req.body;
 
-    const [info] = await pool.query(`INSERT INTO paziente (IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso,dataDimissione,IDSettingDestinazione,problemiAperti,IDProvenienza)
-      VALUES (?,?, ?,?,?,?,?,?,?)`, nuovoPaziente);
-    if(info){
-      const [info1]= await pool.query('UPDATE postiletto set IDStatoLetto=16 where IDPostoletto =?',[IDPostoLetto]);
+  // Generiamo la data odierna nel formato corretto (es. YYYY-MM-DD) per la variabile "oggi"
+  const oggi = new Date().toISOString().slice(0, 10);
+
+  // Mappatura corretta dei dati per l'inserimento
+  const condiceGenerato =  generaCodiceData();
+  const nuovoPaziente = [
+   condiceGenerato, 
+    IDPostoLetto, 
+    nomePaziente, 
+    cognomePaziente, 
+    dataNascita, 
+    sesso, 
+    dataDimissione, 
+    dataDimissione, // dataDimissioneControllo
+    settingDestinazione, 
+    problemiAperti, 
+    settingApp
+  ];
+const tracking = [condiceGenerato, 1, 1, format(new Date(),'yyyy-MM-dd'), format(new Date(),'yyyy-MM-dd')]
+  const conn = await pool.getConnection();
+ 
+  try {
+    await conn.beginTransaction();
+
+    // 1. Controllo pz presente (Usa "conn" e non "pool" per rimanere nella transazione)
+    const [rowsPzPresente] = await conn.query(
+      `SELECT IDPaziente FROM paziente 
+       WHERE IDPostoLetto = ? AND (dataTrasf IS NULL OR dataTrasf = 0 OR dataTrasf = '')`, 
+      [IDPostoLetto]
+    );
+    
+    // 2. Se c'è un paziente, lo "dimettiamo" liberando virtualmente il letto
+    if (rowsPzPresente.length > 0) {
+      await conn.query(
+        'UPDATE paziente SET dataDimissione = ? WHERE IDPostoLetto = ? AND IDPaziente = ?',
+        [oggi, IDPostoLetto, rowsPzPresente[0].IDPaziente]
+      );
+      
+      await conn.query(
+        'UPDATE postiletto SET IDStatoLetto = 16, sessoPz = ? WHERE IDPostoletto = ?',
+        [sesso, IDPostoLetto]
+      );
     }
     
-    res.json({
+    // 3. Inserimento del nuovo paziente
+    const [info] = await conn.query(
+      `INSERT INTO paziente (idRicovero, IDPostoLetto, nomePaziente, cognomePaziente, dataNascita, sesso, dataDimissione, dataDimissioneControllo, IDSettingDestinazione, problemiAperti, IDProvenienza)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+      nuovoPaziente
+    );
+    
+    const [ info1]= await conn.query(`INSERT INTO tracking_paziente (idRicovero, idStato, IDInseritore, dataTrac, dataNuovaDim) VALUES (?, ?, ?, ?, ?)`,tracking)
+    // 4. Aggiornamento dello stato del letto per il nuovo paziente
+    if (info && info.affectedRows > 0) {
+      await conn.query(
+        'UPDATE postiletto SET IDStatoLetto = 16, sessoPz = ? WHERE IDPostoletto = ?',
+        [sesso, IDPostoLetto]
+      );
+    }
+    
+    // Conferma la transazione
+    await conn.commit();
+    conn.release();
+
+    return res.status(200).json({
+      success: true,
       message: 'Dati aggiornati con successo',
       updated: info.affectedRows
     });
-  } catch (err) {
-    console.error('Errore query:', err);
-    res.status(500).json({ error: 'Errore server' });
-  }
 
-});
-router.get('/dimettiPaziente/:IDPaziente/:IDPostoLetto/:livelloAccesso/:IDUtente', async (req, res) => {
-  try {
-    const { IDPaziente, IDPostoLetto,livelloAccesso,IDUtente } = req.params;
+  } catch (err) {
+    // Gestione rollback in caso di errore
+    if (conn) {
+      await conn.rollback();
+      conn.release();
+    }
     
-    const [rows]= await pool.query(`SELECT s.IDSetting FROM setting s
-      JOIN utenti_setting us ON us.IDSetting= s.IDSetting
+    console.error("Errore durante il salvataggio del paziente:", err);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Errore interno del server durante il salvataggio',
+      error: err.message 
+    });
+  }
+});
+
+router.get('/dimettiPaziente/:IDPaziente/:IDPostoLetto/:livelloAccesso/:IDUtente', async (req, res) => {
+  let conn = null;
+  try {
+    const { IDPaziente, IDPostoLetto, livelloAccesso, IDUtente } = req.params;
+    
+    // Ottieni la connessione attendendo la promessa
+    conn = await pool.getConnection();
+    
+    // Avvia la transazione
+    await conn.beginTransaction();
+
+    // Recupera il setting dell'utente (Usa la connessione della transazione, non il pool direttamente)
+    const [rows] = await conn.query(`
+      SELECT s.IDSetting FROM setting s
+      JOIN utenti_setting us ON us.IDSetting = s.IDSetting
       JOIN utenti u ON u.IDUtente = us.IDUtente
-      WHERE u.IDUtente=?`,[IDUtente]);
+      WHERE u.IDUtente = ?`, [IDUtente]);
+
+    if (rows.length === 0) {
+      throw new Error("Setting utente non trovato");
+    }
+
+    const oggi = new Date().toISOString().slice(0, 10); // Assicurati che 'oggi' sia definito
 
     // 1) Aggiorno il paziente
-    const [infoPaziente] = await pool.query(
-      `UPDATE paziente p SET p.dataDimissione= ?, IDProvenienza =?, attivo = 0
-          WHERE p.IDPaziente=?`,
-      [oggi,rows[0].IDSetting, IDPaziente]
+    const [infoPaziente] = await conn.query(
+      `UPDATE paziente p SET p.dataDimissione = ?, IDProvenienza = ?, attivo = 0
+       WHERE p.IDPaziente = ?`,
+      [oggi, rows[0].IDSetting, IDPaziente]
     );
 
     // 2) Aggiorno il posto letto SOLO se l'update paziente ha avuto effetto
-    if (infoPaziente.affectedRows > 0 ) {
-      await pool.query(
+    if (infoPaziente.affectedRows > 0) {
+      await conn.query(
         `UPDATE postiletto SET IDStatoLetto = 14 WHERE IDPostoLetto = ?`,
         [IDPostoLetto]
-)}
+      );
+    } else {
+      throw new Error("Nessun paziente aggiornato. ID errato?");
+    }
 
-    // 3) Risposta al client
-    res.json({ success: true });
+    // Conferma i cambiamenti
+    await conn.commit();
+    return res.json({ success: true });
 
   } catch (err) {
+    // Se la transazione è avviata, esegui il rollback in caso di errore
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackErr) {
+        console.error("Errore durante il rollback:", rollbackErr);
+      }
+    }
     console.error(err);
-    res.status(500).json({ error: "Errore in aggiornamento" });
+    return res.status(500).json({ error: "Errore in aggiornamento" });
+  } finally {
+    // Rilascia SEMPRE la connessione al pool, sia in caso di successo che di errore
+    if (conn) {
+      conn.release();
+    }
   }
 });
 
@@ -715,8 +857,8 @@ router.get('/aggiornaDataTrasf/:IDPaziente/:IDPostoLettoDestinazione/:IDUtente/:
   const IDPaziente = req.params.IDPaziente;  
   const IDUtente = req.params.IDUtente;
  
-  const conn = await pool.getConnection();
   try{
+     const conn = await pool.getConnection();
        await conn.beginTransaction();
 
         // 1️⃣ SELECT paziente
@@ -746,11 +888,12 @@ router.get('/aggiornaDataTrasf/:IDPaziente/:IDPostoLettoDestinazione/:IDUtente/:
         
         await conn.query(
             `INSERT INTO paziente 
-             (IDPostoLetto,IDPazienteProv,nomePaziente, cognomePaziente,dataNascita,sesso, IDSettingDestinazione, dataTrasf,
+             (idRicovero,IDPostoLetto,IDPazienteProv,nomePaziente, cognomePaziente,dataNascita,sesso, IDSettingDestinazione, dataTrasf,
              problemiAperti, IDUtenteTrasf)
-             VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES (?,?,?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                IDPostoLettoDestinazione,
+              paziente.idRicovero,  
+              IDPostoLettoDestinazione,
                 paziente.IDPaziente,
                 paziente.nomePaziente,
                 paziente.cognomePaziente,
@@ -906,16 +1049,55 @@ router.get('/getZone', async (req, res) => {
     res.status(500).json({ error: 'Errore server' });
   }
 });
-router.post('/salvaZona', async (req, res) => {
-  const { IDZona, zona, IDAzienda } = req.body;
-  console.log('Dati ricevuti per la nuova zona:', req.body);
- /*  try {
-    const [result] = await pool.execute('INSERT INTO zone (IDZona, zona, IDAzienda) VALUES (?, ?, ?)', [IDZona, zona, IDAzienda]);
-    res.json(result);
+
+router.post('/salvaDatiLetto', async (req, res) => {
+  const { IDPostoLetto, IDSetting, IDStatoLetto, IDTipoLetto, numeroStanza, sessoPz} = req.body;
+  const postiletto = [sessoPz,IDSetting, IDStatoLetto, IDTipoLetto, numeroStanza, 1, IDPostoLetto];
+
+  try {
+    const [rows] = await pool.query(`SELECT * FROM paziente
+                              WHERE paziente.IDPostoLetto= ? AND (
+        paziente.dataTrasf IS NULL
+        OR paziente.dataTrasf = 0
+        OR paziente.dataTrasf = '0000-00-00'
+      );`, [IDPostoLetto]);
+      
+
+    if (rows) {
+      const [info] = await pool.query(`UPDATE paziente 
+       SET dataTrasf=? 
+       WHERE IDPostoLetto=?`, [oggi, IDPostoLetto]);
+    }
+    console.log("questo è il sesso del paziente  ", sessoPz);
+    const [info] = await pool.query(
+      `UPDATE postiletto 
+       SET sessoPz=?,IDSetting=?, IDStatoLetto=?, IDTipoLetto=?, numeroStanza=?, attivo=?
+       WHERE IDPostoLetto=?`,
+      [...postiletto]
+    );
+
+    res.json({
+      message: 'Dati aggiornati con successo',
+      updated: info.affectedRows
+    });
   } catch (err) {
     console.error('Errore query:', err);
     res.status(500).json({ error: 'Errore server' });
-  } */
+  }
 });
-
+/* router.post('/occupaLetto', async (req, res) => {
+  const { IDPostoLibero, dataOcc } = req.body;
+  console.log("Dati ricevuti per occupare il letto:", { IDPostoLibero, dataOcc });
+  const sql = `UPDATE posti_letto_liberi SET dataOcc = ?, attivo = 0 WHERE idPostoLibero = ?`;
+  try {
+    const [result] = await pool.query(sql, [dataOcc, IDPostoLibero]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Nessun letto trovato con l'ID specificato" });
+    }
+    res.json({ message: "Letto occupato con successo" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Errore nel aggiornare il letto" });
+  }
+}); */
 export default router;

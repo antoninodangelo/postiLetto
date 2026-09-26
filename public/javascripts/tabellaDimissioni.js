@@ -45,7 +45,7 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
         "sesso",
         "Numero letto",
         "ORA ASS. SETTING",
-        "BED MANAGER"
+        "DIMETTI"
     ];
 
     if (livelloAccesso > 10) headers.push("ANNULLA");
@@ -74,8 +74,7 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
             "dataNascita",
             "sesso",
             "numeroLetto",
-            "ora",
-            "BED MANAGER"
+            "ora"
         ];
 
         campi.forEach(key => {
@@ -85,9 +84,10 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
         });
 
         // --- BOTTONE ANNULLA TRASFERIMENTO ---
-        if (livelloAccesso > 10) {
+        if (livelloAccesso >= 50) {
 
             const tdBtn = document.createElement("td");
+            const tdBtnDimetti = document.createElement("td");
 
             const b_annulla_trasf = document.createElement("button");
             b_annulla_trasf.classList.add(
@@ -98,23 +98,31 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
                 "align-items-center",
                 "gap-1"
             );
-            console.log(p);
+            const b_dimetti= document.createElement('button');
+            b_dimetti.classList.add("btn",
+                "btn-outline-danger",
+                "btn-sm",
+                "d-flex",
+                "align-items-center",
+                "gap-1");
+            
             // dataset corretti
+            b_dimetti.dataset.idPaziente=p.IDPaziente;
             b_annulla_trasf.dataset.idPaziente = p.IDPaziente;
             b_annulla_trasf.dataset.idPazienteProv = p.IDPazienteProv;
-
-            b_annulla_trasf.innerHTML = `<i class="bi bi-x-circle"></i> Annulla trasf.`;
+            b_annulla_trasf.innerHTML = `<i class="bi bi-x-circle"></i> Annulla trasf.`;  
+            b_dimetti.innerHTML = `<i class="bi bi-x-circle"></i> Dimetti`;
 
             b_annulla_trasf.addEventListener("click", async () => {
 
                 // 1) Recupero ID letto provvisorio
                 const resLetto = await fetch(`/territorio/getIDPostolettoProv/${p.IDPazienteProv}`);
-                console.log('id provvisori', resLetto)
+                
                 const lettoProv = await resLetto.json();
                 // 2) Annulla trasferimento
                 await fetch(`/territorio/annullaTasferimento/${lettoProv}/${p.IDPaziente}/${IDUtente}/${p.IDPazienteProv}`);
                 await caricaSetting(IDUtente, livelloAccesso);
-                await caricaSetting(IDUtente, livelloAccesso,7);
+                //await caricaSetting(IDUtente, livelloAccesso,7);
                 // 3) Refresh tabelle
                 document.getElementById("tabellaTrasf").innerHTML = "";
                 generaTabellaPostiLiberi(IDUtente, "tabellaTrasf", livelloAccesso);                
@@ -122,8 +130,49 @@ async function tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTa
                 tabellaDimissioni(containerId, IDUtente, livelloAccesso, generaTabellaPostiLiberi, caricaSetting, settings,generaTabellaPazienti);            
                
             });
+           
+            b_dimetti.addEventListener("click", async () => {
+                // Opzionale: Chiedi conferma prima di dimettere
+                if (!confirm("Sei sicuro di voler dimettere il paziente?")) return;
 
+                try {
+                    // Eseguiamo la fetch specificando il metodo POST (più sicuro per le modifiche)
+                    const response = await fetch(`/territorio/dimettiPaziente/${p.IDPaziente}/${p.IDPostoLetto}/50/${IDUtente}`);
+
+                    // CRITICO: fetch NON va nel catch se il server risponde con errore (es. 500). 
+                    // Dobbiamo controllare response.ok
+                    if (!response.ok) {
+                        throw new Error(`Errore del server: ${response.status} ${response.statusText}`);
+                    }
+
+                    // Se arriviamo qui, l'operazione ha avuto successo
+                    alert("Paziente dimesso con successo!");
+                    await caricaSetting(IDUtente, livelloAccesso);
+                //await caricaSetting(IDUtente, livelloAccesso,7);
+                // 3) Refresh tabelle
+                document.getElementById("tabellaTrasf").innerHTML = "";
+                generaTabellaPostiLiberi(IDUtente, "tabellaTrasf", livelloAccesso);                
+                await generaTabellaPazienti(settings, "tabellaTrasf", livelloAccesso); 
+                    // Aggiorna la tabella
+                    tabellaDimissioni(
+                        containerId,
+                        IDUtente,
+                        livelloAccesso,
+                        generaTabellaPostiLiberi,
+                        caricaSetting,
+                        settings,
+                        generaTabellaPazienti
+                    );
+
+                } catch (error) {
+                    console.error("Errore durante la dimissione:", error);
+                    alert("Si è verificato un errore durante la dimissione del paziente.");
+                }
+            });
+
+            tdBtnDimetti.appendChild(b_dimetti);
             tdBtn.appendChild(b_annulla_trasf);
+            tr.appendChild(b_dimetti);
             tr.appendChild(tdBtn);
         }
 
