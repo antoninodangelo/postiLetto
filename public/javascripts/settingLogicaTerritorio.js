@@ -7,6 +7,7 @@ import { gestionePiano } from "./gestioneChiusure/gestionePiano.js";
 import { tabellaPazientiGestiti } from "./tabellaPazientiGestiti.js"
 import { gestisciFormSetting } from "./tabellaInsSetting.js";
 import { tabellaBoarding } from "./tabellaBoarding.js";
+import { listaPzBoarding} from "./tabellaListaBoarding.js";
 
 
 const oggi = Date.now(); // Prende il timestamp attuale in millisecondi
@@ -242,7 +243,8 @@ let datiForm = {
     IDStatoLetto: 1,
     IDTipoLetto: 1,
     numeroStanza: 1,
-    note: ''
+    note: '',
+    boarding:false
 };
 
 
@@ -379,6 +381,7 @@ async function caricaDati() {
     caricaStatoLetti();
     caricaZona();
     generaTabellaPazienti(settingUtente, 'tabellaTrasf', livelloAccesso);
+  
     //generaTabellaPazientiDimessi("7", IDUtente, livelloAccesso);
     if (livelloAccesso >= 50) {
         tabellaBoarding();
@@ -390,7 +393,7 @@ async function caricaDati() {
 
     // tabellaRicoverati('tabellaRicoverati',livelloAccesso);
     caricaSettingAppartenenza();
-
+    listaPzBoarding('lettiLiberi',datiformPz);
 }
 
 function generaTabellaPostiLiberi(IDUtente, idDivAggancio, livelloAccesso) {
@@ -856,7 +859,7 @@ window.assegnaPaziente = function assegnaPaziente(event, IDPostoLetto, IDSetting
 
     generaFormDinamico(configurazioneFormPz, datiformPz, 'formInsPaziente');
 
-    attivaModal(null, IDPostoLetto, IDSetting, 'insPaziente');
+    attivaModal(null, null, IDSetting, 'insPaziente');
 };
 
 
@@ -990,7 +993,7 @@ function creaReparto(nome, IDSetting, livelloAccesso, nomeStruttura) {
                   alert(event.currentTarget.dataset.idPostoletto);
                   datiForm.IDSetting=event.currentTarget.dataset.idSetting;
                   datiForm.IDPostoLetto= event.currentTarget.dataset.idPostoletto
-                    attivaModal(null, letto.IDPostoLetto, IDSetting, "modale");
+                    attivaModal(null, null, IDSetting, "modale");
                 });
 
                 svg.querySelector(".assegnaPz").addEventListener("click", (event) => {
@@ -1249,7 +1252,7 @@ const dashboard = document.getElementById("dashboardReparti");
 
 
 window.attivaModal = function (event, IDPostoLetto, IDSetting, tipoModale) {
-
+    
     // 🔥 NON bloccare Bootstrap se event è null
     if (event) {
         event.stopPropagation();
