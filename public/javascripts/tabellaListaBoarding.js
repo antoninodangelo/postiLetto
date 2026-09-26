@@ -1,5 +1,5 @@
-function listaPzBoarding(gancio, datiForm) {
-
+function listaPzBoarding(gancio, datiForm, livelloAccesso) {
+    if(livelloAccesso < 50 ) return false;
     const divGancio = document.querySelector(`#${gancio}`);
 
     if (!divGancio) {

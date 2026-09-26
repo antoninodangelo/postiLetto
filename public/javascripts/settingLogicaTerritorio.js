@@ -393,7 +393,7 @@ async function caricaDati() {
 
     // tabellaRicoverati('tabellaRicoverati',livelloAccesso);
     caricaSettingAppartenenza();
-    listaPzBoarding('lettiLiberi',datiformPz);
+    listaPzBoarding('lettiLiberi1',datiformPz, livelloAccesso);
 }
 
 function generaTabellaPostiLiberi(IDUtente, idDivAggancio, livelloAccesso) {
@@ -610,12 +610,13 @@ function creaSelectQuery(label, valori, idSelect, idAggancio, titolo = null) {
 QUEST E LA TABELLA SOTTO I LETTI CHE PERMETTE LA GESTIONE DEI TRASFER
 */
 async function generaTabellaPazienti(settings, idDivAggancio, livelloAccesso) {
-
+    if (livelloAccesso<50) return false;
+    console.log(settings, "questi sono i setting passati alla funzione su cui ciclare")
     const container = document.getElementById(idDivAggancio);
     if (!container) return console.error("Div non trovata:", idDivAggancio);
     container.innerHTML = "";
 
-    for (const settingID of settings) {
+    for (const settingID of [7]) {
 
         const response = await fetch(`/territorio/pazientiPerSetting/${settingID}`);
         const pazienti = await response.json();
